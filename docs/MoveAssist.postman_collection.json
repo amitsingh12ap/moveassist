@@ -1,0 +1,258 @@
+{
+  "info": {
+    "name": "MoveAssist API",
+    "description": "Complete API collection for MoveAssist MVP",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "moveId", "value": "" },
+    { "key": "boxId", "value": "" },
+    { "key": "qrCode", "value": "" },
+    { "key": "furnitureId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.token) pm.collectionVariables.set('token', res.token);",
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Has token', () => pm.expect(res.token).to.be.a('string'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Amit Sharma\",\n  \"email\": \"amit@moveassist.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+91-9999999999\"\n}" }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.token) pm.collectionVariables.set('token', res.token);",
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has token', () => pm.expect(res.token).to.be.a('string'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"amit@moveassist.com\",\n  \"password\": \"password123\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 Moves",
+      "item": [
+        {
+          "name": "Create Move",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.id) pm.collectionVariables.set('moveId', res.id);",
+            "pm.test('Status 201', () => pm.response.to.have.status(201));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/moves",
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"My Mumbai to Bangalore Move\",\n  \"from_address\": \"201, Andheri West, Mumbai 400053\",\n  \"to_address\": \"304, Koramangala, Bangalore 560034\",\n  \"move_date\": \"2026-03-15\"\n}" }
+          }
+        },
+        {
+          "name": "Get All Moves",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/moves"
+          }
+        },
+        {
+          "name": "Get Move by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/moves/{{moveId}}"
+          }
+        },
+        {
+          "name": "Update Move Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/moves/{{moveId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"My Mumbai to Bangalore Move\",\n  \"from_address\": \"201, Andheri West, Mumbai 400053\",\n  \"to_address\": \"304, Koramangala, Bangalore 560034\",\n  \"move_date\": \"2026-03-15\",\n  \"status\": \"in_progress\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📫 Boxes (QR Tracking)",
+      "item": [
+        {
+          "name": "Create Box (generates QR)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.id) pm.collectionVariables.set('boxId', res.id);",
+            "if (res.qr_code) pm.collectionVariables.set('qrCode', res.qr_code);",
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Has QR code', () => pm.expect(res.qr_code).to.be.a('string'));",
+            "pm.test('Has QR image', () => pm.expect(res.qr_image_url).to.include('data:image'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/boxes/move/{{moveId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"label\": \"Kitchen Essentials\",\n  \"category\": \"kitchen\",\n  \"contents\": \"Plates, cups, utensils, spice jars\"\n}" }
+          }
+        },
+        {
+          "name": "Create Box 2 (Electronics)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/boxes/move/{{moveId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"label\": \"Electronics\",\n  \"category\": \"fragile\",\n  \"contents\": \"Laptop, chargers, hard drives\"\n}" }
+          }
+        },
+        {
+          "name": "Get All Boxes for Move",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/boxes/move/{{moveId}}"
+          }
+        },
+        {
+          "name": "Scan Box — Mark PACKED",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/boxes/scan/{{qrCode}}",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"packed\",\n  \"location\": \"Living Room\",\n  \"notes\": \"Packed securely with bubble wrap\"\n}" }
+          }
+        },
+        {
+          "name": "Scan Box — Mark LOADED",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/boxes/scan/{{qrCode}}",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"loaded\",\n  \"location\": \"Truck bay 2\",\n  \"notes\": \"Loaded onto truck\"\n}" }
+          }
+        },
+        {
+          "name": "Scan Box — Mark DELIVERED",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/boxes/scan/{{qrCode}}",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"delivered\",\n  \"location\": \"New home - Koramangala\",\n  \"notes\": \"Delivered in good condition\"\n}" }
+          }
+        },
+        {
+          "name": "Lookup Box by QR",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/boxes/qr/{{qrCode}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛋️ Furniture",
+      "item": [
+        {
+          "name": "Add Furniture Item",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const res = pm.response.json();",
+            "if (res.id) pm.collectionVariables.set('furnitureId', res.id);",
+            "pm.test('Status 201', () => pm.response.to.have.status(201));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/furniture/move/{{moveId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"3-Seater Sofa\",\n  \"category\": \"sofa\",\n  \"condition_before\": \"good\",\n  \"damage_notes\": \"Small scratch on left armrest, pre-existing\"\n}" }
+          }
+        },
+        {
+          "name": "Get All Furniture for Move",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/furniture/move/{{moveId}}"
+          }
+        },
+        {
+          "name": "Update Condition After Move",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/furniture/{{furnitureId}}/condition-after",
+            "body": { "mode": "raw", "raw": "{\n  \"condition_after\": \"fair\",\n  \"damage_notes\": \"New scratch on right armrest from loading\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📄 Reports",
+      "item": [
+        {
+          "name": "Generate PDF Report",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/reports/generate/{{moveId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "❤️ Health Check",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    }
+  ]
+}

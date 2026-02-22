@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoveAssist — API Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f6f7f8;--surface:#ffffff;--card:#ffffff;--border:#e2e8f0;--accent:#2563eb;--accent2:#0ea5e9;--success:#22c55e;--error:#ef4444;--warn:#f59e0b;--text:#0f1729;--muted:#64748b;--dim:#94a3b8; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter','JetBrains Mono',sans-serif;min-height:100vh;overflow-x:hidden}
+  header{padding:16px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:20px;position:sticky;top:0;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);z-index:100}
+  .logo{font-family:'Inter',sans-serif;font-weight:800;font-size:18px;color:var(--text)}
+  .logo span{color:var(--muted);font-weight:400}
+  .status-pill{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);padding:6px 14px;border-radius:999px;font-size:11px;color:var(--muted);margin-left:auto}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:background 0.3s}
+  .status-dot.alive{background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 2s infinite}
+  .status-dot.dead{background:var(--error)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .base-url-bar{padding:12px 32px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:12px}
+  .base-url-bar label{color:var(--muted);white-space:nowrap}
+  .base-url-bar input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--accent2);padding:6px 12px;border-radius:6px;font-family:inherit;font-size:12px;outline:none}
+  .token-display{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:11px;color:var(--success);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .layout{display:grid;grid-template-columns:260px 1fr 360px;height:calc(100vh - 97px)}
+  .sidebar{border-right:1px solid var(--border);overflow-y:auto;padding:16px 0;background:var(--surface)}
+  .sidebar::-webkit-scrollbar{width:4px}
+  .sidebar::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
+  .section-label{padding:8px 20px 4px;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+  .ep-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 20px;background:none;border:none;color:var(--text);font-family:inherit;font-size:11px;cursor:pointer;text-align:left;transition:background 0.15s;border-left:2px solid transparent}
+  .ep-btn:hover{background:var(--card)}
+  .ep-btn.active{background:#eff6ff;border-left-color:var(--accent);color:var(--accent)}
+  .mtag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;min-width:36px;text-align:center;letter-spacing:0.5px}
+  .GET{background:#dcfce7;color:#15803d}.POST{background:#dbeafe;color:#1d4ed8}.PUT{background:#e0f2fe;color:#0369a1}.DELETE{background:#fee2e2;color:#b91c1c}
+  .main{display:flex;flex-direction:column;overflow:hidden}
+  .req-panel{padding:24px;border-bottom:1px solid var(--border);flex-shrink:0}
+  .ep-title{font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:var(--text);margin-bottom:6px}
+  .ep-desc{font-size:11px;color:var(--muted);margin-bottom:20px}
+  .url-row{display:flex;gap:10px;margin-bottom:16px;align-items:center}
+  .method-display{font-size:11px;font-weight:700;padding:8px 14px;border-radius:6px;min-width:58px;text-align:center}
+  .url-display{flex:1;background:var(--card);border:1px solid var(--border);color:var(--accent2);padding:8px 14px;border-radius:6px;font-family:inherit;font-size:12px}
+  .send-btn{background:var(--accent);color:#fff;border:none;padding:8px 20px;border-radius:6px;font-family:'Inter',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+  .send-btn:hover{background:#1d4ed8;transform:translateY(-1px)}
+  .send-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+  .body-editor{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .body-header{padding:8px 14px;border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+  .body-header button{background:none;border:1px solid var(--border);color:var(--muted);font-family:inherit;font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer}
+  textarea.body-input{width:100%;background:transparent;border:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:14px;resize:vertical;min-height:110px;outline:none;line-height:1.6}
+  .res-panel{flex:1;overflow-y:auto;padding:24px}
+  .res-panel::-webkit-scrollbar{width:4px}
+  .res-panel::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
+  .res-meta{display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+  .sbadge{font-size:12px;font-weight:700;padding:4px 12px;border-radius:4px}
+  .s2xx{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+  .s4xx{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
+  .s5xx{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
+  .time-badge{font-size:11px;color:var(--muted)}
+  .res-body{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:12px;line-height:1.7;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+  .jk{color:#0369a1}.js{color:#15803d}.jn{color:#b45309}.jb{color:#7c3aed}.jnu{color:var(--muted)}
+  .state-panel{border-left:1px solid var(--border);overflow-y:auto;padding:20px}
+  .state-panel::-webkit-scrollbar{width:4px}
+  .state-panel::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
+  .stitle{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px}
+  .var-item{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;font-size:11px}
+  .var-key{color:var(--muted);margin-bottom:3px;font-size:10px;letter-spacing:0.5px}
+  .var-val{color:var(--accent);word-break:break-all;line-height:1.4}
+  .var-val.empty{color:var(--dim);font-style:italic}
+  .log-section{margin-top:24px}
+  .log-item{padding:8px 0;border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;gap:8px}
+  .lm{color:var(--accent);font-weight:700}.lok{color:var(--success)}.lerr{color:var(--error)}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--dim);font-size:12px;line-height:2}
+  .empty-state .big{font-size:32px;margin-bottom:12px}
+  .loading-dots::after{content:'';animation:dots 1.2s steps(4,end) infinite}
+  @keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
+  .copy-btn{background:var(--border);border:none;color:var(--text);font-family:inherit;font-size:10px;padding:3px 10px;border-radius:4px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Move<span>Assist</span> <span style="font-size:13px;margin-left:4px;">API Tester</span></div>
+  <div class="status-pill"><div class="status-dot" id="statusDot"></div><span id="statusText">checking...</span></div>
+</header>
+<div class="base-url-bar">
+  <label>BASE URL</label>
+  <input type="text" id="baseUrl" value="http://localhost:3000"/>
+  <label style="white-space:nowrap;">TOKEN</label>
+  <div class="token-display" id="tokenDisplay">— not set —</div>
+  <button onclick="clearToken()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:inherit;font-size:10px;padding:5px 10px;border-radius:5px;cursor:pointer;">clear</button>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="section-label">System</div>
+    <button class="ep-btn" onclick="load('health',this)"><span class="mtag GET">GET</span> Health Check</button>
+    <div class="section-label" style="margin-top:8px">Auth</div>
+    <button class="ep-btn" onclick="load('register',this)"><span class="mtag POST">POST</span> Register</button>
+    <button class="ep-btn" onclick="load('login',this)"><span class="mtag POST">POST</span> Login</button>
+    <div class="section-label" style="margin-top:8px">Moves</div>
+    <button class="ep-btn" onclick="load('getMoves',this)"><span class="mtag GET">GET</span> List Moves</button>
+    <button class="ep-btn" onclick="load('createMove',this)"><span class="mtag POST">POST</span> Create Move</button>
+    <button class="ep-btn" onclick="load('getMove',this)"><span class="mtag GET">GET</span> Get Move</button>
+    <button class="ep-btn" onclick="load('updateMove',this)"><span class="mtag PUT">PUT</span> Update Move</button>
+    <div class="section-label" style="margin-top:8px">Boxes (QR)</div>
+    <button class="ep-btn" onclick="load('createBox',this)"><span class="mtag POST">POST</span> Create Box + QR</button>
+    <button class="ep-btn" onclick="load('getBoxes',this)"><span class="mtag GET">GET</span> List Boxes</button>
+    <button class="ep-btn" onclick="load('scanPacked',this)"><span class="mtag POST">POST</span> Scan → Packed</button>
+    <button class="ep-btn" onclick="load('scanLoaded',this)"><span class="mtag POST">POST</span> Scan → Loaded</button>
+    <button class="ep-btn" onclick="load('scanDelivered',this)"><span class="mtag POST">POST</span> Scan → Delivered</button>
+    <button class="ep-btn" onclick="load('lookupQR',this)"><span class="mtag GET">GET</span> Lookup by QR</button>
+    <div class="section-label" style="margin-top:8px">Furniture</div>
+    <button class="ep-btn" onclick="load('addFurniture',this)"><span class="mtag POST">POST</span> Add Item</button>
+    <button class="ep-btn" onclick="load('getFurniture',this)"><span class="mtag GET">GET</span> List Items</button>
+    <button class="ep-btn" onclick="load('conditionAfter',this)"><span class="mtag PUT">PUT</span> Update Condition</button>
+    <div class="section-label" style="margin-top:8px">Reports</div>
+    <button class="ep-btn" onclick="load('generateReport',this)"><span class="mtag POST">POST</span> Generate PDF</button>
+  </nav>
+  <div class="main">
+    <div class="req-panel">
+      <div class="ep-title" id="epTitle">Select an endpoint</div>
+      <div class="ep-desc" id="epDesc">Choose from the sidebar to begin</div>
+      <div class="url-row">
+        <div class="method-display" id="methodDisplay">—</div>
+        <div class="url-display" id="urlDisplay" style="color:var(--dim)">—</div>
+        <button class="send-btn" id="sendBtn" onclick="send()" disabled>SEND</button>
+      </div>
+      <div class="body-editor" id="bodyEditor" style="display:none">
+        <div class="body-header"><span>REQUEST BODY — JSON</span><button onclick="fmt()">format</button></div>
+        <textarea class="body-input" id="bodyInput" spellcheck="false" placeholder="{}"></textarea>
+      </div>
+    </div>
+    <div class="res-panel" id="resPanel"><div class="empty-state"><div class="big">⚡</div>Pick an endpoint and hit SEND</div></div>
+  </div>
+  <div class="state-panel">
+    <div class="stitle">Session State</div>
+    <div class="var-item"><div class="var-key">TOKEN</div><div class="var-val empty" id="sv-token">not set</div></div>
+    <div class="var-item"><div class="var-key">MOVE ID</div><div class="var-val empty" id="sv-moveId">not set</div></div>
+    <div class="var-item"><div class="var-key">BOX ID</div><div class="var-val empty" id="sv-boxId">not set</div></div>
+    <div class="var-item"><div class="var-key">QR CODE</div><div class="var-val empty" id="sv-qrCode">not set</div></div>
+    <div class="var-item"><div class="var-key">FURNITURE ID</div><div class="var-val empty" id="sv-furnitureId">not set</div></div>
+    <div class="log-section"><div class="stitle" style="margin-bottom:10px">Request Log</div><div id="reqLog"></div></div>
+  </div>
+</div>
+<script>
+const S={token:'',moveId:'',boxId:'',qrCode:'',furnitureId:''};
+let cur=null;
+const EP={
+  health:{title:'Health Check',desc:'Verify the API server is running',method:'GET',path:'/health',auth:false,body:null},
+  register:{title:'Register User',desc:'Create account — auto-saves JWT token',method:'POST',path:'/api/auth/register',auth:false,body:{name:'Amit Sharma',email:'amit@moveassist.com',password:'password123',phone:'+91-9999999999'}},
+  login:{title:'Login',desc:'Authenticate — token auto-saved to session',method:'POST',path:'/api/auth/login',auth:false,body:{email:'amit@moveassist.com',password:'password123'}},
+  getMoves:{title:'List All Moves',desc:'Get all move projects for the user',method:'GET',path:'/api/moves',auth:true,body:null},
+  createMove:{title:'Create Move Project',desc:'Start a new move — auto-saves move ID',method:'POST',path:'/api/moves',auth:true,body:{title:'Mumbai → Bangalore Move',from_address:'201 Andheri West, Mumbai',to_address:'304 Koramangala, Bangalore',move_date:'2026-03-15'}},
+  getMove:{title:'Get Move Detail',desc:'Fetch a specific move by saved ID',method:'GET',path:'/api/moves/{moveId}',auth:true,body:null},
+  updateMove:{title:'Update Move Status',desc:'Update move details or status',method:'PUT',path:'/api/moves/{moveId}',auth:true,body:{title:'Mumbai → Bangalore Move',from_address:'201 Andheri West, Mumbai',to_address:'304 Koramangala, Bangalore',move_date:'2026-03-15',status:'in_progress'}},
+  createBox:{title:'Create Box + QR Code',desc:'Creates a box with unique QR — auto-saves box ID and QR',method:'POST',path:'/api/boxes/move/{moveId}',auth:true,body:{label:'Kitchen Essentials',category:'kitchen',contents:'Plates, cups, utensils'}},
+  getBoxes:{title:'List Boxes',desc:'All boxes and scan history for a move',method:'GET',path:'/api/boxes/move/{moveId}',auth:true,body:null},
+  scanPacked:{title:'Scan → PACKED',desc:'Log QR scan — marks box as packed',method:'POST',path:'/api/boxes/scan/{qrCode}',auth:true,body:{status:'packed',location:'Living Room',notes:'Packed with bubble wrap'}},
+  scanLoaded:{title:'Scan → LOADED',desc:'Log QR scan — marks box as loaded',method:'POST',path:'/api/boxes/scan/{qrCode}',auth:true,body:{status:'loaded',location:'Truck Bay 2',notes:'Loaded onto truck'}},
+  scanDelivered:{title:'Scan → DELIVERED',desc:'Log QR scan — marks box as delivered',method:'POST',path:'/api/boxes/scan/{qrCode}',auth:true,body:{status:'delivered',location:'New Home - Koramangala',notes:'Delivered safely'}},
+  lookupQR:{title:'Lookup by QR Code',desc:'Fetch box info and full scan history',method:'GET',path:'/api/boxes/qr/{qrCode}',auth:true,body:null},
+  addFurniture:{title:'Add Furniture Item',desc:'Document a furniture item before move',method:'POST',path:'/api/furniture/move/{moveId}',auth:true,body:{name:'3-Seater Sofa',category:'sofa',condition_before:'good',damage_notes:'Small pre-existing scratch on left armrest'}},
+  getFurniture:{title:'List Furniture',desc:'All documented furniture for a move',method:'GET',path:'/api/furniture/move/{moveId}',auth:true,body:null},
+  conditionAfter:{title:'Update Condition After',desc:'Record post-move condition',method:'PUT',path:'/api/furniture/{furnitureId}/condition-after',auth:true,body:{condition_after:'fair',damage_notes:'New scratch on right armrest'}},
+  generateReport:{title:'Generate PDF Report',desc:'Full move summary — downloads as PDF',method:'POST',path:'/api/reports/generate/{moveId}',auth:true,body:null},
+};
+
+function ip(p){return p.replace('{moveId}',S.moveId||':moveId').replace('{boxId}',S.boxId||':boxId').replace('{qrCode}',S.qrCode||':qrCode').replace('{furnitureId}',S.furnitureId||':furnitureId')}
+
+function load(key,btn){
+  cur=key;const ep=EP[key];
+  document.querySelectorAll('.ep-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.getElementById('epTitle').textContent=ep.title;
+  document.getElementById('epDesc').textContent=ep.desc;
+  const md=document.getElementById('methodDisplay');
+  md.textContent=ep.method;md.className='method-display mtag '+ep.method;
+  document.getElementById('urlDisplay').textContent=ip(ep.path);
+  document.getElementById('sendBtn').disabled=false;
+  const be=document.getElementById('bodyEditor');
+  if(ep.body){be.style.display='block';document.getElementById('bodyInput').value=JSON.stringify(ep.body,null,2);}
+  else be.style.display='none';
+  document.getElementById('resPanel').innerHTML=`<div class="empty-state"><div class="big" style="font-size:20px;margin-bottom:8px">${ep.method} ${ip(ep.path)}</div>Press SEND to fire the request</div>`;
+}
+
+function fmt(){try{const el=document.getElementById('bodyInput');el.value=JSON.stringify(JSON.parse(el.value),null,2);}catch(e){}}
+
+function sh(json){
+  if(typeof json!=='string')json=JSON.stringify(json,null,2);
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{
+    if(/^"/.test(m)){if(/:$/.test(m))return`<span class="jk">${m}</span>`;return`<span class="js">${m}</span>`;}
+    if(/true|false/.test(m))return`<span class="jb">${m}</span>`;
+    if(/null/.test(m))return`<span class="jnu">${m}</span>`;
+    return`<span class="jn">${m}</span>`;
+  });
+}
+
+function updateUI(){
+  const map={token:'sv-token',moveId:'sv-moveId',boxId:'sv-boxId',qrCode:'sv-qrCode',furnitureId:'sv-furnitureId'};
+  Object.keys(map).forEach(k=>{
+    const el=document.getElementById(map[k]);
+    if(S[k]){el.textContent=k==='token'?S[k].substring(0,40)+'...':S[k];el.classList.remove('empty');}
+    else{el.textContent='not set';el.classList.add('empty');}
+  });
+  const td=document.getElementById('tokenDisplay');
+  td.textContent=S.token?S.token.substring(0,36)+'...':'— not set —';
+  td.style.color=S.token?'var(--success)':'var(--dim)';
+}
+
+function addLog(method,path,status){
+  const log=document.getElementById('reqLog');
+  const ok=status>=200&&status<300;
+  const d=document.createElement('div');d.className='log-item';
+  d.innerHTML=`<span class="lm">${method}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${path}</span><span class="${ok?'lok':'lerr'}">${status||'ERR'}</span>`;
+  log.insertBefore(d,log.firstChild);
+  if(log.children.length>20)log.removeChild(log.lastChild);
+}
+
+async function send(){
+  if(!cur)return;
+  const ep=EP[cur];
+  const base=document.getElementById('baseUrl').value.replace(/\/$/,'');
+  const path=ip(ep.path);const url=base+path;
+  const btn=document.getElementById('sendBtn');
+  btn.disabled=true;btn.textContent='SENDING';
+  const panel=document.getElementById('resPanel');
+  panel.innerHTML=`<div class="empty-state"><div class="big loading-dots">Firing request</div></div>`;
+
+  if(cur==='generateReport'){
+    try{
+      const r=await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+S.token}});
+      if(r.ok){
+        const b=await r.blob();const a=document.createElement('a');
+        a.href=URL.createObjectURL(b);a.download=`move-report-${S.moveId||'report'}.pdf`;a.click();
+        panel.innerHTML=`<div class="res-meta"><span class="sbadge s2xx">200 OK</span><span class="time-badge">PDF downloaded ✓</span></div><div class="res-body" style="color:var(--success)">✅ PDF report downloaded!\nCheck your Downloads folder.</div>`;
+        addLog('POST',path,200);
+      }else{
+        const t=await r.text();
+        panel.innerHTML=`<div class="res-meta"><span class="sbadge s4xx">${r.status}</span></div><div class="res-body">${t}</div>`;
+        addLog('POST',path,r.status);
+      }
+    }catch(e){
+      panel.innerHTML=`<div class="res-body" style="color:var(--error)">Network error: ${e.message}</div>`;
+      addLog('POST',path,0);
+    }
+    btn.disabled=false;btn.textContent='SEND';return;
+  }
+
+  const headers={'Content-Type':'application/json'};
+  if(ep.auth&&S.token)headers['Authorization']='Bearer '+S.token;
+  const opts={method:ep.method,headers};
+  if(ep.body){try{opts.body=document.getElementById('bodyInput').value;}catch(e){opts.body='{}'}}
+  const t0=Date.now();
+  try{
+    const r=await fetch(url,opts);const elapsed=Date.now()-t0;
+    let data;try{data=await r.json();}catch(e){data={raw:await r.text()};}
+    if(data.token)S.token=data.token;
+    if(data.id&&cur==='createMove')S.moveId=data.id;
+    if(data.id&&cur==='createBox')S.boxId=data.id;
+    if(data.qr_code)S.qrCode=data.qr_code;
+    if(data.id&&cur==='addFurniture')S.furnitureId=data.id;
+    if(Array.isArray(data)&&data.length>0){
+      if(cur==='getMoves')S.moveId=data[0].id;
+      if(cur==='getBoxes'){S.boxId=data[0].id;S.qrCode=data[0].qr_code;}
+      if(cur==='getFurniture')S.furnitureId=data[0].id;
+    }
+    updateUI();
+    const sc=r.status<300?'s2xx':r.status<500?'s4xx':'s5xx';
+    let qrHtml='';
+    if(data.qr_image_url&&data.qr_image_url.startsWith('data:image')){
+      qrHtml=`<div style="margin:16px 0;padding:12px;background:white;display:inline-block;border-radius:8px"><img src="${data.qr_image_url}" width="140" height="140" style="display:block"/><div style="font-size:10px;color:#333;text-align:center;margin-top:6px;font-family:monospace">QR Code — print me!</div></div>`;
+    }
+    panel.innerHTML=`<div class="res-meta"><span class="sbadge ${sc}">${r.status} ${r.statusText}</span><span class="time-badge">${elapsed}ms</span><button class="copy-btn" onclick="copyR()">copy</button></div>${qrHtml}<div class="res-body">${sh(JSON.stringify(data,null,2))}</div>`;
+    addLog(ep.method,path,r.status);
+    window._lr=JSON.stringify(data,null,2);
+  }catch(e){
+    panel.innerHTML=`<div class="res-meta"><span class="sbadge s4xx">ERROR</span></div><div class="res-body" style="color:var(--error)">Network error: ${e.message}\n\nMake sure the server is running:\ncd ~/Desktop/moveassist/backend && npm run dev</div>`;
+    addLog(ep.method,path,0);
+  }
+  btn.disabled=false;btn.textContent='SEND';
+  if(cur)document.getElementById('urlDisplay').textContent=ip(EP[cur].path);
+}
+
+function copyR(){if(window._lr)navigator.clipboard.writeText(window._lr);}
+function clearToken(){S.token='';updateUI();}
+
+async function checkHealth(){
+  const base=document.getElementById('baseUrl').value.replace(/\/$/,'');
+  const dot=document.getElementById('statusDot');const txt=document.getElementById('statusText');
+  try{
+    const r=await fetch(base+'/health');
+    if(r.ok){dot.className='status-dot alive';txt.textContent='server online';}
+    else{dot.className='status-dot dead';txt.textContent='server error';}
+  }catch(e){dot.className='status-dot dead';txt.textContent='server offline';}
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))send();});
+checkHealth();setInterval(checkHealth,5000);updateUI();
+</script>
+</body>
+</html>

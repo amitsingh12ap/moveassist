@@ -1,0 +1,3002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MoveAssist">
+<meta name="theme-color" content="#0f1729">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.svg">
+<title>MoveAssist</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card2: #f8fafc;
+  --border: #e2e8f0;
+  --accent: #2563eb;
+  --accent2: #0ea5e9;
+  --success: #22c55e;
+  --error: #ef4444;
+  --warn: #f59e0b;
+  --text: #0f1729;
+  --sub: #64748b;
+  --dim: #94a3b8;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+/* auth-mode: mobile only overrides */
+@media (max-width: 899px) {
+  body.auth-mode { overflow-y: auto !important; height: auto !important; }
+  body.auth-mode #app { height: auto !important; min-height: 100dvh; }
+  body.auth-mode #screens { overflow: visible !important; position: static !important; flex: none !important; }
+  body.auth-mode #screen-auth { position: static !important; opacity: 1 !important; pointer-events: all !important; transform: none !important; padding: 0 !important; }
+  body.auth-mode .bottom-nav { display: none !important; }
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  overscroll-behavior: none;
+}
+
+/* APP SHELL */
+#app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+/* TOP BAR */
+.topbar {
+  padding: calc(var(--safe-top) + 10px) 20px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 200;
+  min-height: 60px;
+}
+.topbar-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+.topbar-title span { color: var(--sub); font-weight: 700; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+@media (min-width: 900px) {
+  /* topbar hidden on desktop via JS (showApp sets it), and #app is flex row anyway */
+  .topbar { display: none !important; }
+}
+.server-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--dim);
+  transition: background 0.3s;
+}
+.server-dot.live { background: var(--success); box-shadow: 0 0 8px var(--success); animation: blink 2s infinite; }
+.server-dot.dead { background: var(--error); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+}
+
+/* SCREENS */
+#screens { flex: 1; overflow: hidden; position: relative; }
+.screen {
+  position: absolute; inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 16px;
+  opacity: 0; pointer-events: none;
+  transform: translateY(12px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.screen.active { opacity: 1; pointer-events: all; transform: translateY(0); }
+.screen::-webkit-scrollbar { display: none; }
+
+/* BOTTOM NAV */
+.bottom-nav {
+  display: flex;
+  background: rgba(255,255,255,0.97);
+  border-top: 1px solid var(--border);
+  padding-bottom: var(--safe-bot);
+  flex-shrink: 0;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 10px 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--sub); font-family: inherit;
+  transition: color 0.15s;
+}
+.nav-btn.active { color: var(--accent); }
+.nav-icon { font-size: 22px; margin-bottom: 2px; }
+.nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+
+/* CARDS */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-sm { padding: 12px 14px; border-radius: 12px; }
+
+/* SECTION HEADER */
+.section-head {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.section-sub { color: var(--sub); font-size: 13px; margin-bottom: 20px; }
+
+/* FORM */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 600; color: var(--sub); margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+.field input, .field select, .field textarea {
+  width: 100%;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--accent);
+}
+.field textarea { resize: none; height: 80px; }
+
+/* BUTTONS */
+.btn {
+  width: 100%; padding: 14px;
+  border-radius: 12px; border: none;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700; font-size: 15px;
+  cursor: pointer; transition: all 0.15s;
+  letter-spacing: 0.3px;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:active { transform: scale(0.97); background: var(--accent); opacity:0.9; }
+.btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:active { transform: scale(0.97); }
+.btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.btn:disabled { opacity: 0.4; }
+
+/* STATUS BADGES */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+}
+.badge-created { background: #f1f5f9; color: var(--sub); border: 1px solid var(--border); }
+.badge-packed { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.badge-loaded { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.badge-in_transit { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.badge-delivered { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
+.badge-planning { background: #f1f5f9; color: var(--sub); border: 1px solid var(--border); }
+.badge-in_progress { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.badge-completed { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
+
+/* MOVE CARD */
+.move-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 16px; margin-bottom: 12px;
+  cursor: pointer; transition: border-color 0.15s, transform 0.15s;
+  display: block; text-decoration: none;
+}
+.move-card:active { transform: scale(0.98); border-color: var(--accent); }
+.move-card-title { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+.move-card-meta { font-size: 12px; color: var(--sub); display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.move-card-route { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
+.move-card-route .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.move-card-route .line { width: 20px; height: 1px; background: var(--border); flex-shrink: 0; }
+
+/* BOX ITEM */
+.box-item {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 12px;
+}
+.box-icon { font-size: 28px; flex-shrink: 0; }
+.box-info { flex: 1; min-width: 0; }
+.box-label { font-weight: 600; font-size: 15px; }
+.box-meta { font-size: 12px; color: var(--sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* FURNITURE ITEM */
+.furniture-item {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 12px;
+}
+
+/* QR DISPLAY */
+.qr-container {
+  background: white; border-radius: 16px;
+  padding: 20px; display: flex; flex-direction: column;
+  align-items: center; gap: 10px; margin: 16px 0;
+}
+.qr-container img { width: 200px; height: 200px; display: block; }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: calc(70px + var(--safe-bot) + 12px);
+  left: 16px; right: 16px;
+  background: var(--text); border: 1px solid var(--border);
+  color: #fff; padding: 12px 16px; border-radius: 12px;
+  font-size: 14px; font-weight: 500;
+  transform: translateY(20px); opacity: 0;
+  transition: all 0.25s; z-index: 1000;
+  text-align: center;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { background: #059669; border-color: #059669; color: #fff; }
+#toast.error { background: #dc2626; border-color: #dc2626; color: #fff; }
+
+/* LOADING SPINNER */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,23,41,0.55);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex; align-items: flex-end;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-sheet {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  border-top: 1px solid var(--border);
+  padding: 0 20px calc(var(--safe-bot) + 20px);
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+}
+.modal-overlay.open .modal-sheet { transform: translateY(0); }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 20px; }
+.modal-title { font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 20px; }
+
+/* EMPTY STATE */
+.empty {
+  text-align: center; padding: 48px 20px;
+  color: var(--dim);
+}
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-title { font-size: 16px; font-weight: 600; color: var(--sub); margin-bottom: 6px; }
+.empty-sub { font-size: 13px; }
+
+/* STAT GRID */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.stat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+.stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+.stat-val { font-family: 'Inter', sans-serif; font-size: 30px; font-weight: 800; color: var(--accent); line-height: 1; margin: 6px 0 4px; }
+.stat-label { font-size: 12px; color: var(--sub); font-weight: 500; letter-spacing: 0.2px; }
+.stat-icon { font-size: 22px; margin-bottom: 4px; display: block; }
+
+/* PAYMENT GATE BANNER */
+.payment-gate {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.payment-gate .gate-icon { font-size: 40px; margin-bottom: 10px; }
+.payment-gate .gate-title { font-family: 'Inter', sans-serif; font-size: 17px; font-weight: 800; color: #b45309; margin-bottom: 6px; }
+.payment-gate .gate-sub { font-size: 13px; color: var(--sub); margin-bottom: 16px; line-height: 1.6; }
+
+/* INVOICE */
+.invoice-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.invoice-row:last-child { border-bottom: none; }
+.invoice-row.total { font-weight: 700; font-size: 16px; color: var(--accent); }
+.invoice-row.total span:last-child { font-family: 'Inter', sans-serif; }
+
+/* PAYMENT METHOD SELECTOR */
+.pay-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.pay-method-btn {
+  background: var(--card2); border: 2px solid var(--border);
+  border-radius: 12px; padding: 14px 10px;
+  text-align: center; cursor: pointer; transition: all 0.15s;
+  font-family: inherit;
+}
+.pay-method-btn:active { transform: scale(0.97); }
+.pay-method-btn.sel { border-color: var(--accent); background: rgba(240,192,64,0.08); }
+.pay-method-icon { font-size: 24px; margin-bottom: 6px; }
+.pay-method-label { font-size: 12px; font-weight: 600; color: var(--sub); }
+.pay-method-btn.sel .pay-method-label { color: var(--accent); }
+
+/* STATUS TIMELINE */
+.timeline { position: relative; padding-left: 20px; }
+.timeline::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.timeline-item { position: relative; padding: 0 0 20px 20px; }
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-dot {
+  position: absolute; left: -13px; top: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--border); border: 2px solid var(--bg);
+}
+.timeline-dot.done { background: var(--success); }
+.timeline-dot.current { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+.timeline-label { font-size: 13px; font-weight: 600; }
+.timeline-sub { font-size: 11px; color: var(--dim); margin-top: 2px; }
+
+/* PAYMENT MODAL */
+.upi-input { font-size: 18px; text-align: center; letter-spacing: 1px; }
+
+/* LOCK WARNING */
+.lock-warn { background: #1a0a00; border: 1px solid var(--warn); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--warn); margin-top: 12px; }
+
+/* DIVIDER */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ADMIN TABS */
+.admin-tab {
+  flex: 1; padding: 8px 4px; border: none; border-radius: 8px;
+  background: transparent; color: var(--sub);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; letter-spacing: 0.3px;
+}
+.admin-tab.active { background: var(--card); color: var(--text); }
+
+/* ADMIN STAT ROW */
+.admin-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.admin-stat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px;
+}
+.admin-stat-val { font-family: 'Inter', sans-serif; font-size: 26px; font-weight: 800; }
+.admin-stat-label { font-size: 11px; color: var(--sub); margin-top: 2px; }
+
+/* USER ROW */
+.user-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.user-row:last-child { border-bottom: none; }
+.user-role-pill {
+  font-size: 10px; font-weight: 700; padding: 3px 8px;
+  border-radius: 999px; letter-spacing: 0.5px;
+}
+
+/* PAYMENT ROW */
+.payment-row {
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.payment-row:last-child { border-bottom: none; }
+
+/* SECTION TITLE */
+.admin-section-title {
+  font-size: 11px; font-weight: 700; color: var(--sub);
+  letter-spacing: 0.8px; margin-bottom: 12px; text-transform: uppercase;
+}
+
+.scan-area {
+  width: 100%; aspect-ratio: 1;
+  border-radius: 20px; overflow: hidden;
+  position: relative; background: #0f1729;
+  margin: 16px 0;
+}
+.scan-area video { width: 100%; height: 100%; object-fit: cover; }
+.scan-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.scan-frame {
+  width: 220px; height: 220px;
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+  position: relative;
+  transition: border-color 0.3s;
+}
+.scan-frame.detected {
+  border-color: var(--success);
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.55), 0 0 20px var(--success);
+}
+/* Corner accents */
+.scan-frame::before, .scan-frame::after {
+  content: '';
+  position: absolute;
+  width: 24px; height: 24px;
+  border-color: var(--accent);
+  border-style: solid;
+}
+.scan-frame::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.scan-frame::after  { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+/* Scan line */
+@keyframes scanline {
+  0%   { top: 10%; opacity: 1; }
+  90%  { top: 85%; opacity: 1; }
+  100% { top: 85%; opacity: 0; }
+}
+.scan-line {
+  position: absolute;
+  left: 8px; right: 8px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  border-radius: 1px;
+  animation: scanline 2s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* CHIP ROW */
+.chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.chip {
+  padding: 6px 12px; border-radius: 999px;
+  background: var(--card2); border: 1px solid var(--border);
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: all 0.15s; color: var(--sub);
+}
+.chip.sel { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+
+/* SCAN LOG */
+.scan-log-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.scan-log-item:last-child { border-bottom: none; }
+.scan-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); margin-top: 6px; flex-shrink: 0; }
+.scan-log-status { font-size: 12px; font-weight: 700; color: var(--success); }
+.scan-log-time { font-size: 11px; color: var(--dim); }
+.scan-log-note { font-size: 13px; color: var(--sub); }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE DESKTOP LAYOUT — ≥ 900px
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Desktop Sidebar */
+.desk-sidebar {
+  display: none;  /* shown only by body.logged-in at >=900px */
+  width: 256px;
+  background: #0f1729;
+  flex-direction: column;
+  border-right: none;
+  box-shadow: none;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 0;
+}
+.desk-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 20px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  margin-bottom: 8px;
+}
+.desk-sidebar-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: #2563eb;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.desk-sidebar-title { font-weight: 800; font-size: 15px; color: #ffffff; }
+.desk-sidebar-sub { font-size: 10px; color: #64748b; margin-top: 1px; letter-spacing: 0.5px; text-transform: uppercase; }
+.desk-nav-section { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #475569; padding: 12px 20px 6px; }
+.desk-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 20px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.desk-nav-btn:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+.desk-nav-btn.active { background: rgba(37,99,235,0.2); border-left-color: #2563eb; color: #fff; font-weight: 600; }
+.desk-nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.8; }
+.desk-nav-btn.active .desk-nav-icon { opacity: 1; }
+.desk-sidebar-footer {
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.desk-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+.desk-logout-btn:hover { opacity: 1; }
+
+/* ── APP BODY: flex column on all sizes ── */
+.app-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (min-width: 900px) {
+  /* ═══ APP SHELL ═══ */
+  html, body { overflow: hidden; height: 100vh; height: 100dvh; }
+
+  #app {
+    display: flex;
+    flex-direction: row;        /* sidebar | right-col */
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* Mobile topbar hidden on desktop */
+  .topbar { display: none !important; }
+  .bottom-nav { display: none !important; }
+
+  /* Sidebar + desk-topbar: shown when logged in (CSS-only, no inline JS) */
+  body.logged-in .desk-sidebar { display: flex !important; }
+  body.logged-in .desk-topbar { display: flex !important; }
+
+  /* Right column: desk-topbar + screens */
+  .app-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Desktop inner topbar */
+  /* .desk-topbar visibility controlled by JS */
+
+  /* Screens area */
+  #screens {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    min-height: 0;
+  }
+
+  /* Each screen fills #screens absolutely, scrolls internally */
+  .screen {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    opacity: 0;
+    pointer-events: none;
+    transform: none !important;
+    transition: opacity 0.18s ease !important;
+    display: block !important;   /* always in DOM, opacity controls visibility */
+    padding: 32px 40px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* Auth screen: no topbar offset, centered */
+  #screen-auth {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  /* Section headings */
+  .section-head { font-size: 26px; }
+
+  /* Grids */
+  #movesList { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+  #movesList .move-card { margin-bottom: 0; }
+  #movesList > .empty { grid-column: 1/-1; }
+  #boxesList { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  #boxesList .box-item { margin-bottom: 0; }
+  #furnitureList { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  #furnitureList .furniture-item { margin-bottom: 0; }
+  #agentMovesList { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  #agentMovesList .agent-move-card { margin-bottom: 0; }
+
+  /* Stat grids */
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+  #agentStatGrid { grid-template-columns: repeat(3, 1fr) !important; }
+  .stat-card { padding: 20px; }
+  .stat-val { font-size: 32px; }
+  .pay-method-grid { grid-template-columns: repeat(4, 1fr); }
+
+  /* Move detail 2-col */
+  .move-detail-layout { flex-direction: row; align-items: flex-start; }
+  .move-detail-main { flex: 1; min-width: 0; }
+  .move-detail-sidebar { width: 280px; flex-shrink: 0; }
+
+  /* Scan: max-width */
+  #screen-scan { max-width: 600px; margin-left: auto; margin-right: auto; }
+
+  /* Modals: center dialog */
+  .modal-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: rgba(15,23,41,0.6);
+  }
+  .modal-sheet {
+    border-radius: 16px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 90vh;
+    transform: scale(0.96) !important;
+    transition: transform 0.25s cubic-bezier(0.32,0.72,0,1) !important;
+  }
+  .modal-overlay.open .modal-sheet { transform: scale(1) !important; }
+  .modal-handle { display: none; }
+
+  /* Toast: top-right */
+  #toast {
+    bottom: auto !important;
+    top: 76px;
+    left: auto;
+    right: 24px;
+    width: 320px;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+}
+
+@media (min-width: 1200px) {
+  .screen { padding: 40px 48px; max-width: 1400px; }
+  #movesList { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+  #agentMovesList { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+}
+
+/* ─── DESKTOP STATS BANNER ──────────────────────────────────── */
+.desktop-stats-banner {
+  display: none;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+@media (min-width: 900px) {
+  .desktop-stats-banner { display: grid; }
+}
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+.kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+.kpi-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+.kpi-val { font-size: 30px; font-weight: 800; line-height: 1; color: var(--text); }
+.kpi-label { font-size: 12px; color: var(--sub); font-weight: 500; }
+.kpi-trend { font-size: 11px; font-weight: 600; }
+
+/* ─── AGENT STAT CARDS ─────────────────────────────────────── */
+#agentStatGrid .stat-card { padding: 18px 20px; }
+#agentStatGrid .stat-icon { font-size: 22px; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #eff6ff; }
+
+/* ─── DESKTOP SECTION DIVIDER ────────────────────────────── */
+.desk-section-title {
+  font-size: 13px; font-weight: 700; color: var(--sub);
+  letter-spacing: 0.5px; text-transform: uppercase;
+  margin-bottom: 14px;
+  display: none;
+}
+@media (min-width: 900px) { .desk-section-title { display: block; } }
+
+/* ─── SCREEN HEADER (title + action btn row) ───────────────── */
+.screen-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 12px;
+}
+.screen-header-left { flex: 1; min-width: 0; }
+.screen-header .section-head { margin-bottom: 2px; }
+.screen-header .section-sub { margin-bottom: 0; }
+.screen-header-action {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.1s;
+}
+.screen-header-action:hover { background: #1d4ed8; }
+.screen-header-action:active { transform: scale(0.97); }
+
+/* ─── IMPROVED MOVE CARDS ──────────────────────────────────── */
+.move-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  display: block;
+  text-decoration: none;
+}
+.move-card:hover { border-left-color: var(--accent); box-shadow: 0 4px 20px rgba(37,99,235,0.12); transform: translateY(-2px); }
+.move-card.status-active { border-left-color: var(--success); }
+.move-card.status-pending { border-left-color: var(--warn); }
+.move-card.status-completed { border-left-color: #6366f1; }
+
+/* ─── MOVE CARD CONTENT ─────────────────────────────────────── */
+.move-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 10px; }
+.move-card-title { font-weight: 700; font-size: 15px; line-height: 1.3; flex: 1; min-width: 0; }
+.move-card-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; }
+.move-card-route { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub); margin-bottom: 10px; }
+.move-card-route .from, .move-card-route .to { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.move-card-route .arrow { color: var(--dim); flex-shrink: 0; font-size: 14px; }
+.move-card-footer { display: flex; justify-content: space-between; align-items: center; }
+.move-card-stats { display: flex; gap: 12px; }
+.move-card-stat { font-size: 11px; color: var(--sub); display: flex; align-items: center; gap: 3px; }
+.move-card-date { font-size: 11px; color: var(--dim); }
+
+/* ─── STATUS BADGE COLORS ────────────────────────────────────── */
+.status-badge-payment_pending { background: #fef3c7; color: #b45309; }
+.status-badge-active { background: #dcfce7; color: #15803d; }
+.status-badge-in_progress { background: #dbeafe; color: #1d4ed8; }
+.status-badge-completed { background: #ede9fe; color: #6d28d9; }
+.status-badge-closed { background: #f1f5f9; color: #64748b; }
+
+/* ─── BACK BUTTON ────────────────────────────────────────────── */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--sub);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 20px;
+  font-family: inherit;
+  transition: color 0.15s;
+}
+.back-btn:hover { color: var(--accent); }
+
+/* ─── MOVE DETAIL 2-COL ─────────────────────────────────────── */
+.move-detail-layout { display: flex; flex-direction: column; gap: 20px; }
+@media (min-width: 900px) {
+  .move-detail-layout { flex-direction: row; align-items: flex-start; }
+  .move-detail-main { flex: 1; min-width: 0; }
+  .move-detail-sidebar { width: 280px; flex-shrink: 0; }
+}
+
+/* ─── DETAIL CARD ────────────────────────────────────────────── */
+.detail-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.detail-card-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--sub); margin-bottom: 12px; }
+.detail-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  margin-bottom: 8px;
+  text-align: left;
+  transition: all 0.15s;
+}
+.detail-action-btn:hover { background: #eff6ff; border-color: var(--accent); color: var(--accent); }
+.detail-action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.detail-action-btn .icon { font-size: 18px; flex-shrink: 0; }
+.detail-action-btn .label { flex: 1; }
+.detail-action-btn .count { font-size: 11px; color: var(--dim); background: var(--bg); padding: 2px 6px; border-radius: 99px; }
+
+/* ─── AGENT CARD ─────────────────────────────────────────────── */
+.agent-move-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+.agent-move-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+.agent-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.agent-card-customer { font-weight: 700; font-size: 14px; }
+.agent-card-phone { font-size: 12px; color: var(--sub); margin-top: 2px; }
+.agent-card-boxes { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--sub); margin-top: 10px; }
+.agent-card-progress { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.agent-card-progress-fill { height: 100%; background: var(--success); border-radius: 3px; transition: width 0.3s; }
+
+/* ─── DESKTOP AUTH LAYOUT ────────────────────────────────────── */
+.auth-desktop-wrap {
+  display: flex;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(15,23,41,0.12);
+  flex-shrink: 0;
+}
+.auth-hero {
+  display: none;
+  width: 340px;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, #1e40af 0%, #0f1729 100%);
+  padding: 40px 32px;
+  flex-direction: column;
+  justify-content: center;
+  color: #fff;
+}
+.auth-hero-logo { font-size: 36px; margin-bottom: 20px; }
+.auth-hero-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+.auth-hero-sub { font-size: 13px; color: #94a3b8; line-height: 1.7; margin-bottom: 32px; }
+.auth-hero-feature { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #cbd5e1; margin-bottom: 12px; }
+.auth-hero-feature-icon { width: 28px; height: 28px; border-radius: 8px; background: rgba(37,99,235,0.2); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.auth-form-panel { flex: 1; background: var(--card); padding: 36px 32px; }
+@media (min-width: 900px) {
+  .auth-hero { display: flex; }
+  .auth-form-panel { padding: 40px 36px; }
+}
+
+/* ─── STAT CARDS IMPROVED ────────────────────────────────────── */
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.stat-val { font-size: 26px; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+.stat-label { font-size: 11px; color: var(--sub); font-weight: 500; }
+.stat-icon { font-size: 20px; margin-bottom: 6px; }
+
+/* ─── PROFILE SCREEN ─────────────────────────────────────────── */
+.profile-header-card {
+  background: var(--accent);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #fff;
+}
+.profile-avatar-lg {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.profile-name { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+.profile-email { font-size: 13px; color: rgba(255,255,255,0.75); margin-bottom: 4px; }
+.profile-role-chip { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; background: rgba(255,255,255,0.2); color: #fff; padding: 3px 8px; border-radius: 99px; }
+
+/* ─── MOBILE ONLY ────────────────────────────────────────────── */
+@media (max-width: 899px) {
+  .auth-desktop-wrap { border-radius: 0; box-shadow: none; }
+  .auth-form-panel { padding: 16px 16px 40px; background: transparent; }
+  .screen { padding: 16px; }
+  .auth-desktop-header { display: none; }
+  .desk-sidebar { display: none !important; }
+  .desk-topbar { display: none !important; }
+}
+@media (min-width: 900px) {
+  .auth-mobile-header { display: none; }
+}
+
+
+/* ─── DESKTOP INNER TOPBAR ───────────────────────────────────── */
+.desk-topbar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 60px;
+  display: none; /* shown by CSS: body.logged-in at >=900px */
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.desk-topbar-breadcrumb {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+.desk-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+@media (max-width: 899px) {
+  .desk-topbar { display: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-title" id="topbarTitle">Move<span>Assist</span></div>
+    <div class="topbar-right">
+      <div id="topbarBreadcrumb" style="display:none;font-size:13px;color:var(--sub);margin-right:12px"></div>
+      <div class="server-dot" id="serverDot" title="Server status"></div>
+      <div id="topbarUserInfo" style="display:none;margin-right:4px;text-align:right">
+        <div style="font-size:13px;font-weight:600" id="topbarUserName"></div>
+        <div style="font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px" id="topbarUserRole"></div>
+      </div>
+      <div class="avatar" id="userAvatar">?</div>
+    </div>
+  </div>
+
+  <nav class="desk-sidebar" id="deskSidebar">
+    <div class="desk-sidebar-brand">
+      <div class="desk-sidebar-icon">📦</div>
+      <div>
+        <div class="desk-sidebar-title">MoveAssist</div>
+        <div class="desk-sidebar-sub" id="deskSidebarRole">CUSTOMER PORTAL</div>
+      </div>
+    </div>
+    <div class="desk-nav-section">NAVIGATION</div>
+    <button class="desk-nav-btn active" id="dsk-home" onclick="navTo('home')">
+      <svg class="desk-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      My Moves
+    </button>
+    <button class="desk-nav-btn" id="dsk-scan" onclick="navTo('scan')">
+      <svg class="desk-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      QR Scanner
+    </button>
+    <button class="desk-nav-btn" id="dsk-profile" onclick="navTo('profile')">
+      <svg class="desk-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Profile
+    </button>
+    <div class="desk-sidebar-footer">
+      <button class="desk-logout-btn" onclick="doLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </nav>
+
+  <!-- RIGHT COLUMN: topbar + screens -->
+  <div class="app-body">
+    <!-- Desktop topbar (inside right column) -->
+    <div class="desk-topbar" id="deskTopbar" style="display:none">
+      <div class="desk-topbar-breadcrumb" id="deskBreadcrumb">Dashboard</div>
+      <div class="desk-topbar-right">
+        <div class="server-dot" id="serverDot2"></div>
+        <div id="deskUserName" style="font-size:13px;font-weight:600;color:var(--text)"></div>
+        <div id="deskUserRole" style="font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px"></div>
+        <div class="avatar" id="deskAvatar">?</div>
+      </div>
+    </div>
+    <!-- SCREENS -->
+    <div id="screens">
+
+    <!-- AUTH SCREEN -->
+    <div class="screen active" id="screen-auth">
+      <div class="auth-desktop-wrap">
+        <!-- Hero panel (desktop only) -->
+        <div class="auth-hero">
+          <div class="auth-hero-logo">📦</div>
+          <div class="auth-hero-title">MoveAssist</div>
+          <div class="auth-hero-sub">Your complete home shifting companion. Track every box, document every item, generate reports.</div>
+          <div class="auth-hero-feature"><div class="auth-hero-feature-icon">📦</div>QR code tracking for every box</div>
+          <div class="auth-hero-feature"><div class="auth-hero-feature-icon">📷</div>Scan to update box status</div>
+          <div class="auth-hero-feature"><div class="auth-hero-feature-icon">🛋️</div>Document furniture condition</div>
+          <div class="auth-hero-feature"><div class="auth-hero-feature-icon">📄</div>Auto-generate PDF reports</div>
+        </div>
+        <!-- Form panel -->
+        <div class="auth-form-panel">
+          <!-- Mobile header (hidden on desktop) -->
+          <div style="text-align:center;margin-bottom:28px;padding-top:32px" class="auth-mobile-header">
+            <div style="font-size:48px;margin-bottom:10px">📦</div>
+            <div class="section-head">MoveAssist</div>
+            <div class="section-sub">Home shifting, made structured</div>
+          </div>
+          <!-- Desktop header (hidden on mobile) -->
+          <div style="margin-bottom:28px" class="auth-desktop-header">
+            <div style="font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px">Welcome back</div>
+            <div style="font-size:13px;color:var(--sub)">Sign in to your MoveAssist account</div>
+          </div>
+          <!-- Tab switcher -->
+          <div style="display:flex;gap:0;margin-bottom:24px;background:var(--bg);border-radius:10px;padding:3px;border:1px solid var(--border)">
+            <button class="btn btn-primary" id="authTabLogin" onclick="switchAuthTab('login')" style="flex:1;border-radius:8px;padding:10px;font-size:13px">Sign In</button>
+            <button class="btn btn-secondary" id="authTabRegister" onclick="switchAuthTab('register')" style="flex:1;border-radius:8px;padding:10px;font-size:13px;background:transparent;border:none;color:var(--sub)">Register</button>
+          </div>
+          <div id="authLoginForm">
+            <div class="field"><label>Email Address</label><input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email"/></div>
+            <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"/></div>
+            <button class="btn btn-primary" onclick="doLogin()" id="loginBtn" style="margin-top:4px">Sign In →</button>
+          </div>
+          <div id="authRegisterForm" style="display:none">
+            <div class="field"><label>Full Name</label><input type="text" id="regName" placeholder="Amit Sharma"/></div>
+            <div class="field"><label>Email Address</label><input type="email" id="regEmail" placeholder="you@email.com" autocomplete="email"/></div>
+            <div class="field"><label>Password</label><input type="password" id="regPassword" placeholder="Min 8 characters" autocomplete="new-password"/></div>
+            <div class="field"><label>Phone (optional)</label><input type="tel" id="regPhone" placeholder="+91-9999999999"/></div>
+            <button class="btn btn-primary" onclick="doRegister()" id="registerBtn">Create Account →</button>
+          </div>
+          <div style="text-align:center;font-size:11px;color:var(--dim);margin-top:20px">
+            Server: <span id="authServerUrl" style="color:var(--sub)">localhost:3000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYMENT SCREEN -->
+    <div class="screen" id="screen-payment">
+      <button onclick="showScreen('home');loadMoves()" style="background:none;border:none;color:var(--sub);font-size:14px;cursor:pointer;margin-bottom:16px;padding:0;display:flex;align-items:center;gap:6px">← Back</button>
+      <div id="paymentContent"></div>
+    </div>
+
+    <!-- AGENT DASHBOARD SCREEN -->
+    <div class="screen" id="screen-agent">
+      <div class="screen-header">
+        <div class="screen-header-left">
+          <div class="section-head">Agent Dashboard</div>
+          <div class="section-sub" id="agentSubtitle">Assigned moves</div>
+        </div>
+      </div>
+      <div id="agentStatGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px"></div>
+      <div id="agentMovesList"></div>
+    </div>
+
+    <!-- ADMIN DASHBOARD SCREEN -->
+    <div class="screen" id="screen-admin">
+      <!-- Admin Tab Bar -->
+      <div style="display:flex;gap:6px;margin-bottom:20px;background:var(--card2);padding:4px;border-radius:12px">
+        <button class="admin-tab active" id="atab-overview" onclick="switchAdminTab('overview')">Overview</button>
+        <button class="admin-tab" id="atab-moves" onclick="switchAdminTab('moves')">Moves</button>
+        <button class="admin-tab" id="atab-payments" onclick="switchAdminTab('payments')">Payments</button>
+        <button class="admin-tab" id="atab-users" onclick="switchAdminTab('users')">Users</button>
+      </div>
+      <div id="adminContent"><div style="text-align:center;padding:40px"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- HOME / MOVES SCREEN -->
+    <div class="screen" id="screen-home">
+      <div class="screen-header">
+        <div class="screen-header-left">
+          <div class="section-head">My Moves</div>
+          <div class="section-sub">All your home shifting projects</div>
+        </div>
+        <button class="screen-header-action" onclick="openCreateMove()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+          New Move
+        </button>
+      </div>
+      <!-- Desktop KPI row (populated by loadMoves) -->
+      <div class="desktop-stats-banner" id="homeStatsBanner" style="display:none"></div>
+      <div class="desk-section-title" id="homeSectionTitle" style="display:none">YOUR MOVES</div>
+      <div id="movesList"><div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No moves yet</div><div class="empty-sub">Click + New Move to get started</div></div></div>
+    </div>
+
+    <!-- MOVE DETAIL SCREEN -->
+    <div class="screen" id="screen-move">
+      <button onclick="goBack()" class="back-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="m15 18-6-6 6-6"/></svg>
+        Back to Moves
+      </button>
+      <div id="moveDetailContent"></div>
+    </div>
+
+    <!-- BOXES SCREEN -->
+    <div class="screen" id="screen-boxes">
+      <button onclick="showScreen('move')" class="back-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="m15 18-6-6 6-6"/></svg> Move Detail</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div><div class="section-head" style="margin-bottom:0">Boxes</div><div style="font-size:12px;color:var(--sub)" id="boxesMoveTitle"></div></div>
+        <button class="btn btn-primary" onclick="openAddBox()" style="width:auto;padding:10px 16px;font-size:13px">+ Box</button>
+      </div>
+      <div id="boxesList"></div>
+    </div>
+
+    <!-- BOX DETAIL SCREEN -->
+    <div class="screen" id="screen-box-detail">
+      <button onclick="showScreen('boxes')" style="background:none;border:none;color:var(--sub);font-size:14px;cursor:pointer;margin-bottom:16px;padding:0">← Boxes</button>
+      <div id="boxDetailContent"></div>
+    </div>
+
+    <!-- SCAN SCREEN -->
+    <div class="screen" id="screen-scan">
+      <div class="section-head">Scan QR</div>
+      <div class="section-sub" id="scanSubtitle">Point camera at a box QR code</div>
+
+      <!-- Camera permission prompt -->
+      <div id="cameraPrompt" style="text-align:center;padding:32px 16px">
+        <div style="font-size:64px;margin-bottom:16px">📷</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px">Camera Access</div>
+        <div style="color:var(--sub);font-size:14px;line-height:1.6;margin-bottom:28px">MoveAssist needs your camera to scan box QR codes. Your camera is only used while scanning.</div>
+        <button class="btn btn-primary" id="cameraPermBtn" onclick="requestCameraPermission()" style="max-width:280px;margin:0 auto">Allow Camera Access</button>
+        <div style="margin-top:16px">
+          <button onclick="skipToManual()" style="background:none;border:none;color:var(--sub);font-family:inherit;font-size:13px;cursor:pointer;text-decoration:underline">Skip — enter QR manually</button>
+        </div>
+      </div>
+
+      <!-- Camera viewfinder -->
+      <div class="scan-area" id="scanArea" style="display:none">
+        <video id="scanVideo" playsinline autoplay muted></video>
+        <canvas id="scanCanvas" style="display:none"></canvas>
+        <div class="scan-overlay">
+          <div class="scan-frame" id="scanFrame"><div class="scan-line"></div></div>
+        </div>
+        <!-- Scanning pulse indicator -->
+        <div id="scanStatus" style="position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif">
+          Scanning...
+        </div>
+      </div>
+
+      <!-- Camera permission error -->
+      <div id="cameraError" style="display:none">
+        <div class="card" style="text-align:center;padding:24px;border-color:var(--error)">
+          <div style="font-size:32px;margin-bottom:10px">📵</div>
+          <div style="font-weight:600;margin-bottom:6px;color:var(--error)">Camera Access Denied</div>
+          <div style="font-size:13px;color:var(--sub);margin-bottom:16px">Allow camera permission in your browser settings, then reload the page.</div>
+          <button class="btn btn-secondary" onclick="retryCamera()">Try Again</button>
+        </div>
+      </div>
+
+      <!-- Scan result panel -->
+      <div id="scanResult" style="display:none;margin-top:16px">
+        <div class="card" id="scannedBoxCard"></div>
+        <div style="margin-top:12px">
+          <div style="font-size:13px;font-weight:600;color:var(--sub);margin-bottom:8px;letter-spacing:0.5px">UPDATE STATUS TO</div>
+          <div class="chip-row" id="statusChips"></div>
+          <div class="field"><label>Location</label><input type="text" id="scanLocation" placeholder="e.g. Living Room, Truck Bay 2"/></div>
+          <div class="field"><label>Notes</label><input type="text" id="scanNotes" placeholder="Optional notes"/></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-secondary" onclick="resetScanner()" style="flex:1">Scan Again</button>
+            <button class="btn btn-primary" onclick="submitScan()" id="scanSubmitBtn" style="flex:2">Log Scan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual fallback -->
+      <div id="scanPlaceholder" style="margin-top:12px;display:none">
+        <div class="card" style="padding:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:10px;letter-spacing:0.5px">MANUAL LOOKUP</div>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="manualQR" placeholder="Paste QR code / UUID" style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:inherit;font-size:14px;outline:none"/>
+            <button class="btn btn-secondary" onclick="lookupManualQR()" style="width:auto;padding:10px 16px;white-space:nowrap">Lookup</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FURNITURE SCREEN -->
+    <div class="screen" id="screen-furniture">
+      <button onclick="showScreen('move')" style="background:none;border:none;color:var(--sub);font-size:14px;cursor:pointer;margin-bottom:16px;padding:0">← Back</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div><div class="section-head" style="margin-bottom:0">Furniture</div><div style="font-size:12px;color:var(--sub)" id="furnMoveTitle"></div></div>
+        <button class="btn btn-primary" onclick="openAddFurniture()" style="width:auto;padding:10px 16px;font-size:13px">+ Item</button>
+      </div>
+      <div id="furnitureList"></div>
+    </div>
+
+    <!-- REPORT SCREEN -->
+    <div class="screen" id="screen-report">
+      <div class="section-head">Move Report</div>
+      <div class="section-sub">Generate your move summary PDF</div>
+      <div id="reportContent">
+        <div class="empty"><div class="empty-icon">📄</div><div class="empty-title">Select a move first</div><div class="empty-sub">Go to a move and tap Generate Report</div></div>
+      </div>
+    </div>
+
+    <!-- PROFILE SCREEN -->
+    <div class="screen" id="screen-profile"><div class="profile-inner">
+      <div class="section-head" style="margin-bottom:4px">Profile</div>
+      <div class="section-sub">Account & settings</div>
+      <div class="profile-header-card">
+        <div class="profile-avatar-lg" id="profileAvatar">?</div>
+        <div>
+          <div class="profile-name" id="profileName">—</div>
+          <div class="profile-email" id="profileEmail">—</div>
+          <span class="profile-role-chip" id="profileRoleBadge">CUSTOMER</span>
+        </div>
+      </div>
+      <div class="card card-sm" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Server</div>
+          <div style="font-size:14px;font-weight:500" id="profileServer">—</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Status</div>
+          <div style="font-size:14px;font-weight:600" id="profileServerStatus">—</div>
+        </div>
+      </div>
+      <button class="btn btn-danger" onclick="doLogout()" style="margin-top:8px">Sign Out</button>
+    </div>
+
+  </div><!-- /screens -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" id="bottomNav" style="display:none">
+    <button class="nav-btn active" id="nav-home" onclick="navTo('home')">
+      <span class="nav-icon">🏠</span><span class="nav-label">Moves</span>
+    </button>
+    <button class="nav-btn" id="nav-scan" onclick="navTo('scan')">
+      <span class="nav-icon">📷</span><span class="nav-label">Scan</span>
+    </button>
+    <button class="nav-btn" id="nav-profile" onclick="navTo('profile')">
+      <span class="nav-icon">👤</span><span class="nav-label">Profile</span>
+    </button>
+  </nav>
+
+  </div><!-- /app-body -->
+</div><!-- /app -->
+
+<!-- MODAL: Payment -->
+<div class="modal-overlay" id="payModal" onclick="closeModal('payModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="payModalTitle">Complete Payment</div>
+    <div id="payModalContent"></div>
+  </div>
+</div>
+
+<!-- MODAL: Cash Payment (Agent) -->
+<div class="modal-overlay" id="cashModal" onclick="closeModal('cashModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Cash / Offline Payment</div>
+    <div class="field"><label>Amount Received (₹)</label><input type="number" id="cashAmount" placeholder="0.00" inputmode="decimal"/></div>
+    <div class="field"><label>Payment Mode</label>
+      <select id="cashMode">
+        <option value="cash">Cash</option>
+        <option value="upi_offline">UPI (shown to agent)</option>
+        <option value="cheque">Cheque</option>
+        <option value="bank_transfer">Bank Transfer</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes</label><input type="text" id="cashNotes" placeholder="Reference number, remarks…"/></div>
+    <div class="lock-warn">⏱ Once submitted, this entry is locked after 10 minutes and cannot be edited.</div>
+    <button class="btn btn-primary" onclick="submitCashPayment()" id="cashSubmitBtn" style="margin-top:16px">Mark Payment Received</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- MODAL: Create Move -->
+<div class="modal-overlay" id="createMoveModal" onclick="closeModal('createMoveModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">New Move Project</div>
+    <div class="field"><label>Move Title</label><input type="text" id="newMoveTitle" placeholder="e.g. Mumbai to Bangalore"/></div>
+    <div class="field"><label>From Address</label><input type="text" id="newMoveFrom" placeholder="Current address"/></div>
+    <div class="field"><label>To Address</label><input type="text" id="newMoveTo" placeholder="Destination address"/></div>
+    <div class="field"><label>Move Date</label><input type="date" id="newMoveDate"/></div>
+    <button class="btn btn-primary" onclick="createMove()" id="createMoveBtn">Create Move</button>
+  </div>
+</div>
+
+<!-- MODAL: Add Box -->
+<div class="modal-overlay" id="addBoxModal" onclick="closeModal('addBoxModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Box</div>
+    <div class="field"><label>Label</label><input type="text" id="newBoxLabel" placeholder="e.g. Kitchen Essentials"/></div>
+    <div class="field"><label>Category</label>
+      <select id="newBoxCategory">
+        <option value="general">General</option>
+        <option value="kitchen">Kitchen</option>
+        <option value="bedroom">Bedroom</option>
+        <option value="electronics">Electronics</option>
+        <option value="fragile">Fragile</option>
+        <option value="clothes">Clothes</option>
+        <option value="books">Books</option>
+        <option value="bathroom">Bathroom</option>
+      </select>
+    </div>
+    <div class="field"><label>Contents</label><textarea id="newBoxContents" placeholder="What's inside this box?"></textarea></div>
+    <button class="btn btn-primary" onclick="addBox()" id="addBoxBtn">Add Box + Generate QR</button>
+  </div>
+</div>
+
+<!-- MODAL: Add Furniture -->
+<div class="modal-overlay" id="addFurnModal" onclick="closeModal('addFurnModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Furniture Item</div>
+    <div class="field"><label>Item Name</label><input type="text" id="newFurnName" placeholder="e.g. 3-Seater Sofa"/></div>
+    <div class="field"><label>Category</label>
+      <select id="newFurnCategory">
+        <option value="sofa">Sofa / Couch</option>
+        <option value="bed">Bed</option>
+        <option value="table">Table</option>
+        <option value="chair">Chair</option>
+        <option value="wardrobe">Wardrobe</option>
+        <option value="appliance">Appliance</option>
+        <option value="tv">TV / Electronics</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="field"><label>Current Condition</label>
+      <select id="newFurnCondition">
+        <option value="excellent">Excellent</option>
+        <option value="good" selected>Good</option>
+        <option value="fair">Fair</option>
+        <option value="poor">Poor</option>
+      </select>
+    </div>
+    <div class="field"><label>Existing Damage Notes</label><textarea id="newFurnDamage" placeholder="Any pre-existing damage? (optional)"></textarea></div>
+    <button class="btn btn-primary" onclick="addFurniture()" id="addFurnBtn">Add Item</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+// ─── STATE ───────────────────────────────────────────────────
+const BASE = window.location.origin;
+let token = localStorage.getItem('ma_token') || '';
+let user = JSON.parse(localStorage.getItem('ma_user') || 'null');
+let currentMove = null;
+let currentBox = null;
+let currentScreen = 'auth';
+
+// ─── API ─────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(BASE + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `Error ${r.status}`);
+  return data;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+  if (token && user) {
+    showApp();
+  }
+  checkServer();
+  setInterval(checkServer, 5000);
+});
+
+async function checkServer() {
+  const dot = document.getElementById('serverDot');
+  const dot2 = document.getElementById('serverDot2');
+  const pss = document.getElementById('profileServerStatus');
+  try {
+    const r = await fetch(BASE + '/health');
+    if (r.ok) {
+      dot.className = 'server-dot live';
+      if (dot2) dot2.className = 'server-dot live';
+      if (pss) { pss.textContent = '🟢 Online'; pss.style.color = 'var(--success)'; }
+    } else throw new Error();
+  } catch {
+    dot.className = 'server-dot dead';
+    if (dot2) dot2.className = 'server-dot dead';
+    if (pss) { pss.textContent = '🔴 Offline'; pss.style.color = 'var(--error)'; }
+  }
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('authLoginForm').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('authRegisterForm').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('authTabLogin').className = isLogin ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('authTabRegister').className = isLogin ? 'btn btn-secondary' : 'btn btn-primary';
+  if (!isLogin) {
+    document.getElementById('authTabLogin').style.cssText = 'flex:1;border-radius:8px;padding:10px;background:transparent;border:none;color:var(--sub)';
+    document.getElementById('authTabRegister').style.cssText = 'flex:1;border-radius:8px;padding:10px';
+  } else {
+    document.getElementById('authTabLogin').style.cssText = 'flex:1;border-radius:8px;padding:10px';
+    document.getElementById('authTabRegister').style.cssText = 'flex:1;border-radius:8px;padding:10px;background:transparent;border:none;color:var(--sub)';
+  }
+}
+
+async function doLogin() {
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Logging in...';
+  try {
+    const data = await api('POST', '/api/auth/login', {
+      email: document.getElementById('loginEmail').value,
+      password: document.getElementById('loginPassword').value,
+    });
+    token = data.token;
+    user = data.user;
+    localStorage.setItem('ma_token', token);
+    localStorage.setItem('ma_user', JSON.stringify(user));
+    showApp();
+    toast('Welcome back, ' + user.name.split(' ')[0] + '!', 'success');
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Login';
+}
+
+async function doRegister() {
+  const btn = document.getElementById('registerBtn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  try {
+    const data = await api('POST', '/api/auth/register', {
+      name: document.getElementById('regName').value,
+      email: document.getElementById('regEmail').value,
+      password: document.getElementById('regPassword').value,
+      phone: document.getElementById('regPhone').value,
+    });
+    token = data.token;
+    user = data.user;
+    localStorage.setItem('ma_token', token);
+    localStorage.setItem('ma_user', JSON.stringify(user));
+    showApp();
+    toast('Account created! Welcome 🎉', 'success');
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Create Account';
+}
+
+function doLogout() {
+  token = ''; user = null;
+  localStorage.removeItem('ma_token');
+  localStorage.removeItem('ma_user');
+  document.getElementById('bottomNav').style.display = 'none';
+  document.body.classList.remove('logged-in');
+  document.getElementById('topbarUserInfo').style.display = 'none';
+  const deskTopbar = document.getElementById('deskTopbar');
+  if (deskTopbar) deskTopbar.style.display = '';
+  // Sidebar hidden via CSS: body.logged-in removed
+  document.body.classList.remove('logged-in');
+  showScreen('auth');
+}
+
+function isDesktop() { return window.innerWidth >= 900; }
+
+function showApp() {
+  document.body.classList.add('logged-in');
+  // Bottom nav (mobile only)
+  document.getElementById('bottomNav').style.display = 'flex';
+
+  const initials = user?.name?.split(' ').map(w => w[0]).join('').substring(0, 2) || '?';
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('profileAvatar').textContent = initials;
+  document.getElementById('profileName').textContent = user?.name || '—';
+  document.getElementById('profileEmail').textContent = user?.email || '—';
+  document.getElementById('profileServer').textContent = BASE;
+
+  // Role badge on profile
+  const roleBadgeColor = { agent: 'var(--accent2)', admin: '#a78bfa', customer: 'var(--success)' };
+  const roleEl = document.getElementById('profileRoleBadge');
+  if (roleEl) {
+    roleEl.textContent = (user?.role || 'customer').toUpperCase();
+    roleEl.style.color = roleBadgeColor[user?.role] || 'var(--sub)';
+  }
+
+  // Desktop sidebar
+  const roleLabel = { admin: 'SAAS CONTROL CENTER', agent: 'AGENT PORTAL', customer: 'CUSTOMER PORTAL' };
+  document.getElementById('deskSidebarRole').textContent = roleLabel[user?.role] || 'CUSTOMER PORTAL';
+
+  // Sidebar shown by CSS: body.logged-in .desk-sidebar { display:flex } @media >=900px
+  // Never set sidebar inline style — let CSS handle it
+  const initials2 = user?.name?.split(' ').map(w => w[0]).join('').substring(0, 2) || '?';
+  // Desktop inner topbar
+  const deskTopbar = document.getElementById('deskTopbar');
+  if (deskTopbar) {
+    document.getElementById('deskUserName').textContent = user?.name || '';
+    document.getElementById('deskUserRole').textContent = (user?.role || '').toUpperCase();
+    document.getElementById('deskAvatar').textContent = initials2;
+    deskTopbar.style.display = ''; // let CSS control (flex when >=900px)
+  }
+
+  // Update sidebar home button label based on role
+  const homeBtn = document.getElementById('dsk-home');
+  const homeBtnLabel = homeBtn?.querySelector('span') || homeBtn?.lastChild;
+  if (homeBtn) {
+    const svgPart = homeBtn.innerHTML.match(/<svg[^]*?<\/svg>/)?.[0] || '';
+    if (user?.role === 'admin') homeBtn.innerHTML = svgPart + ' Admin Panel';
+    else if (user?.role === 'agent') homeBtn.innerHTML = svgPart + ' Dashboard';
+    else homeBtn.innerHTML = svgPart + ' My Moves';
+  }
+
+  // Topbar user info (mobile only)
+  document.getElementById('topbarUserInfo').style.display = isDesktop() ? 'none' : 'flex';
+  document.getElementById('topbarUserInfo').style.flexDirection = 'column';
+  document.getElementById('topbarUserInfo').style.alignItems = 'flex-end';
+  const uname = document.getElementById('topbarUserName');
+  const urole = document.getElementById('topbarUserRole');
+  if (uname) uname.textContent = user?.name || '';
+  if (urole) urole.textContent = (user?.role || '').toUpperCase();
+
+  // Mobile nav labels
+  const mobileHome = document.getElementById('nav-home');
+  if (mobileHome) {
+    if (user?.role === 'admin') { mobileHome.querySelector('.nav-label').textContent = 'Admin'; mobileHome.querySelector('.nav-icon').textContent = '🛡️'; }
+    else if (user?.role === 'agent') { mobileHome.querySelector('.nav-label').textContent = 'Dashboard'; mobileHome.querySelector('.nav-icon').textContent = '🗂️'; }
+    else { mobileHome.querySelector('.nav-label').textContent = 'Moves'; mobileHome.querySelector('.nav-icon').textContent = '🏠'; }
+  }
+
+  if (user?.role === 'admin') { showScreen('admin'); openAdminDashboard(); }
+  else if (user?.role === 'agent') { navTo('agent'); loadAgentMoves(); }
+  else { navTo('home'); loadMoves(); }
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────
+function navTo(screen) {
+  // Mobile bottom nav
+  ['home','scan','profile'].forEach(s => {
+    document.getElementById('nav-'+s)?.classList.remove('active');
+  });
+  document.getElementById('nav-'+screen)?.classList.add('active');
+
+  // Desktop sidebar
+  ['home','scan','profile'].forEach(s => {
+    document.getElementById('dsk-'+s)?.classList.remove('active');
+  });
+  document.getElementById('dsk-'+screen)?.classList.add('active');
+
+  if (screen === 'scan') startCamera();
+  else stopCamera();
+  const screenId = screen === 'home' && user?.role === 'admin' ? 'admin' : screen === 'home' && user?.role === 'agent' ? 'agent' : screen;
+  showScreen(screenId);
+  if (screenId === 'admin') openAdminDashboard();
+  else if (screenId === 'agent') loadAgentMoves();
+  setTopbar(screen);
+
+  // Scroll handled by showScreen
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if (el) {
+    el.classList.add('active');
+    // Scroll to top within the screen
+    setTimeout(() => { el.scrollTop = 0; }, 50);
+  }
+  if (id === 'auth') {
+    document.body.classList.add('auth-mode');
+    // Auth: hide desk-topbar, show sidebar brand only
+    const dt = document.getElementById('deskTopbar');
+    if (dt) dt.style.display = 'none';
+  } else {
+    document.body.classList.remove('auth-mode');
+    // Re-show desk-topbar if desktop + logged in
+    if (isDesktop() && user) {
+      const dt = document.getElementById('deskTopbar');
+      if (dt) dt.style.display = 'flex';
+    }
+  }
+  currentScreen = id;
+}
+
+function goBack() {
+  showScreen('home');
+  loadMoves();
+}
+
+function setTopbar(screen) {
+  const mTitles = {
+    home: 'Move<span style="color:var(--sub);font-weight:700">Assist</span>',
+    agent: 'Agent Dashboard',
+    scan: 'QR Scanner',
+    profile: 'Profile',
+    move: 'Move Detail',
+    boxes: 'Boxes',
+    furniture: 'Furniture',
+    report: 'Report',
+    payment: 'Payment',
+    admin: 'Admin',
+  };
+  const dTitles = {
+    home: 'My Moves',
+    agent: 'Agent Dashboard',
+    scan: 'QR Scanner',
+    profile: 'Profile',
+    move: 'Move Detail',
+    boxes: 'Boxes',
+    furniture: 'Furniture',
+    report: 'Report',
+    payment: 'Payment',
+    admin: 'Admin Dashboard',
+  };
+  const mobileTitle = document.getElementById('topbarTitle');
+  if (mobileTitle) mobileTitle.innerHTML = mTitles[screen] || 'MoveAssist';
+  // Update desk breadcrumb
+  const bread = document.getElementById('deskBreadcrumb');
+  if (bread) bread.textContent = dTitles[screen] || 'Dashboard';
+  // Sync server dot on desktop topbar
+  const dot2 = document.getElementById('serverDot2');
+  if (dot2) {
+    const dot1 = document.getElementById('serverDot');
+    if (dot1) dot2.className = dot1.className;
+    if (dot1) dot2.style.cssText = dot1.style.cssText;
+  }
+}
+
+// ─── AGENT DASHBOARD ─────────────────────────────────────────
+async function loadAgentMoves() {
+  const list = document.getElementById('agentMovesList');
+  const subtitle = document.getElementById('agentSubtitle');
+  const statGrid = document.getElementById('agentStatGrid');
+  list.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+  try {
+    const moves = await api('GET', '/api/moves/agent/assigned');
+    subtitle.textContent = `${moves.length} move${moves.length !== 1 ? 's' : ''} assigned to you`;
+
+    // Stats
+    const active = moves.filter(m => m.status === 'active').length;
+    const inProg = moves.filter(m => m.status === 'in_progress').length;
+    const done = moves.filter(m => m.status === 'completed').length;
+    if (statGrid) statGrid.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#eff6ff;color:var(--accent)">📋</div>
+        <div class="stat-val">${moves.length}</div>
+        <div class="stat-label">Total Assigned</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef3c7;color:#b45309">🚛</div>
+        <div class="stat-val" style="color:var(--accent)">${active + inProg}</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7;color:#15803d">✅</div>
+        <div class="stat-val" style="color:var(--success)">${done}</div>
+        <div class="stat-label">Completed</div>
+      </div>
+    `;
+
+    if (!moves.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">🗂️</div><div class="empty-title">No moves assigned yet</div><div class="empty-sub">You'll see customer moves here once assigned by admin</div></div>`;
+      return;
+    }
+    list.innerHTML = moves.map(m => {
+      const isPending = ['payment_pending','created'].includes(m.status);
+      const info = STATUS_LABELS[m.status] || { label: m.status, color: 'var(--sub)', icon: '📦' };
+      const totalBoxes = parseInt(m.total_boxes) || 0;
+      const deliveredBoxes = parseInt(m.delivered_boxes) || 0;
+      const progress = totalBoxes > 0 ? Math.round((deliveredBoxes/totalBoxes)*100) : 0;
+      return `
+      <div class="agent-move-card" onclick="openMove('${m.id}')">
+        <div class="agent-card-top">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--sub);text-transform:uppercase;margin-bottom:4px">Customer</div>
+            <div class="agent-card-customer">${m.user_name||'Unknown'}</div>
+            ${m.customer_phone ? `<div class="agent-card-phone">📞 ${m.customer_phone}</div>` : ''}
+          </div>
+          <span class="move-card-badge status-badge-${m.status}">${info.label}</span>
+        </div>
+        <div style="margin-bottom:10px">
+          <div style="font-weight:600;font-size:14px;margin-bottom:4px">${m.title||'Unnamed Move'}</div>
+          <div class="move-card-route"><span class="from">${m.from_address||'—'}</span><span class="arrow">→</span><span class="to">${m.to_address||'—'}</span></div>
+        </div>
+        ${totalBoxes > 0 ? `
+        <div class="agent-card-boxes">
+          <span>📦 ${deliveredBoxes}/${totalBoxes} delivered</span>
+          <div class="agent-card-progress"><div class="agent-card-progress-fill" style="width:${progress}%"></div></div>
+          <span>${progress}%</span>
+        </div>` : '<div style="font-size:12px;color:var(--dim)">No boxes tracked yet</div>'}
+        ${isPending ? `
+        <div style="margin-top:12px">
+          <button onclick="event.stopPropagation();openCashModal('${m.id}')" style="width:100%;padding:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+            💵 Mark Cash Received
+          </button>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+// ─── MOVES ────────────────────────────────────────────────────
+async function loadMoves() {
+  const list = document.getElementById('movesList');
+  list.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+  try {
+    const moves = await api('GET', '/api/moves');
+
+    // Desktop KPI banner
+    const banner = document.getElementById('homeStatsBanner');
+    const secTitle = document.getElementById('homeSectionTitle');
+    if (banner && isDesktop()) {
+      const active = moves.filter(m => m.status === 'active' || m.status === 'in_progress').length;
+      const pending = moves.filter(m => ['payment_pending','created'].includes(m.status)).length;
+      const totalBoxes = moves.reduce((s,m) => s + (parseInt(m.total_boxes)||0), 0);
+      const delivered = moves.reduce((s,m) => s + (parseInt(m.delivered_boxes)||0), 0);
+      banner.style.display = 'grid';
+      if (secTitle) secTitle.style.display = 'block';
+      banner.innerHTML = `
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#eff6ff;color:var(--accent)">🏠</div>
+          <div class="kpi-val">${moves.length}</div>
+          <div class="kpi-label">Total Moves</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#dcfce7;color:#15803d">🟢</div>
+          <div class="kpi-val" style="color:#15803d">${active}</div>
+          <div class="kpi-label">Active</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#fef3c7;color:#b45309">⚠️</div>
+          <div class="kpi-val" style="color:#b45309">${pending}</div>
+          <div class="kpi-label">Payment Pending</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:#f0fdf4;color:#166534">📦</div>
+          <div class="kpi-val" style="color:#166534">${delivered}/${totalBoxes}</div>
+          <div class="kpi-label">Boxes Delivered</div>
+        </div>`;
+    }
+
+    if (!moves.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No moves yet</div><div class="empty-sub">Click + New Move to create your first move</div></div>`;
+      return;
+    }
+    list.innerHTML = moves.map(m => {
+      const isPending = ['payment_pending', 'created'].includes(m.status);
+      const isVerifying = m.status === 'payment_under_verification';
+      const s = STATUS_LABELS[m.status] || { label: m.status, color: 'var(--sub)', icon: '📦' };
+      const statusClass = m.status === 'active' ? 'status-active' : isPending ? 'status-pending' : m.status === 'completed' ? 'status-completed' : '';
+      const badgeClass = 'status-badge-' + m.status;
+      const dateStr = m.move_date ? new Date(m.move_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : null;
+      return `
+      <div class="move-card ${statusClass}" onclick="openMove('${m.id}')">
+        <div class="move-card-header">
+          <div class="move-card-title">${m.title || 'Unnamed Move'}</div>
+          <span class="move-card-badge ${badgeClass}">${s.label}</span>
+        </div>
+        <div class="move-card-route">
+          <span class="from">${m.from_address || 'Origin not set'}</span>
+          <span class="arrow">→</span>
+          <span class="to">${m.to_address || 'Destination not set'}</span>
+        </div>
+        <div class="move-card-footer">
+          <div class="move-card-stats">
+            <span class="move-card-stat">📦 ${m.total_boxes||0} boxes</span>
+            ${m.total_boxes > 0 ? `<span class="move-card-stat" style="color:var(--success)">✓ ${m.delivered_boxes||0} delivered</span>` : ''}
+          </div>
+          ${dateStr ? `<span class="move-card-date">📅 ${dateStr}</span>` : ''}
+        </div>
+        ${isPending ? `<div style="margin-top:10px;padding:9px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#b45309;display:flex;justify-content:space-between;align-items:center">
+          <span>⚠️ Payment required to activate</span>
+          <span style="font-weight:700;color:var(--accent)">Pay Now →</span>
+        </div>` : ''}
+        ${isVerifying ? `<div style="margin-top:10px;padding:9px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;color:#1d4ed8">
+          🔍 Payment under verification by admin
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Failed to load</div><div class="empty-sub">${e.message}</div></div>`;
+  }
+}
+
+async function openMove(id) {
+  showScreen('move');
+  setTopbar('move');
+  const content = document.getElementById('moveDetailContent');
+  content.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+  try {
+    const m = await api('GET', `/api/moves/${id}`);
+    currentMove = m;
+    const boxes = await api('GET', `/api/boxes/move/${id}`);
+    const furniture = await api('GET', `/api/furniture/move/${id}`);
+    const delivered = boxes.filter(b => b.status === 'delivered').length;
+    const paid = isActive(m);
+    const isPending = ['payment_pending', 'created'].includes(m.status);
+    const s = STATUS_LABELS[m.status] || { label: m.status, color: 'var(--sub)', icon: '📦' };
+
+    content.innerHTML = `
+      <div class="move-detail-layout">
+        <!-- LEFT: Main info -->
+        <div class="move-detail-main">
+          <!-- Title + status -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px">
+            <div>
+              <div class="section-head" style="margin-bottom:4px">${m.title || 'Unnamed Move'}</div>
+              <span class="move-card-badge status-badge-${m.status}">${s.label}</span>
+            </div>
+            <span style="font-size:32px;flex-shrink:0">${s.icon}</span>
+          </div>
+
+          <!-- Route -->
+          <div class="detail-card" style="margin-bottom:16px">
+            <div class="detail-card-label">Route</div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <div style="flex:1">
+                <div style="font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px">From</div>
+                <div style="font-size:14px;font-weight:500">${m.from_address || '—'}</div>
+              </div>
+              <div style="color:var(--accent);font-size:20px">→</div>
+              <div style="flex:1;text-align:right">
+                <div style="font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px">To</div>
+                <div style="font-size:14px;font-weight:500">${m.to_address || '—'}</div>
+              </div>
+            </div>
+            ${m.move_date ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;color:var(--sub)">📅 Moving date: <strong style="color:var(--text)">${new Date(m.move_date).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</strong></div>` : ''}
+          </div>
+
+          <!-- Stats -->
+          <div class="stat-grid" style="margin-bottom:16px">
+            <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-val">${boxes.length}</div><div class="stat-label">Total Boxes</div></div>
+            <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-val" style="color:var(--success)">${delivered}</div><div class="stat-label">Delivered</div></div>
+            <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-val" style="color:var(--warn)">${boxes.length-delivered}</div><div class="stat-label">Remaining</div></div>
+            <div class="stat-card"><div class="stat-icon">🛋️</div><div class="stat-val" style="color:var(--accent2)">${furniture.length}</div><div class="stat-label">Furniture</div></div>
+          </div>
+
+          ${isPending ? `
+          <div class="payment-gate" style="margin-bottom:16px">
+            <div class="gate-icon">💳</div>
+            <div class="gate-title">Complete Payment to Activate</div>
+            <div class="gate-sub">Box tracking, QR codes, and agent assignment unlock after payment.</div>
+            <button class="btn btn-primary" onclick="openPaymentScreen('${m.id}')" style="max-width:240px;margin:0 auto">View Payment Details →</button>
+          </div>` : ''}
+        </div>
+
+        <!-- RIGHT: Actions sidebar -->
+        <div class="move-detail-sidebar">
+          <div class="detail-card">
+            <div class="detail-card-label">Actions</div>
+            <button class="detail-action-btn" onclick="${paid ? `openBoxes('${m.id}')` : `showPaymentGate('${m.id}')`}" ${!paid?'disabled':''}>
+              <span class="icon">📦</span>
+              <span class="label">${!paid?'🔒 ':''}Manage Boxes</span>
+              <span class="count">${boxes.length}</span>
+            </button>
+            <button class="detail-action-btn" onclick="${paid ? `openFurniture('${m.id}')` : `showPaymentGate('${m.id}')`}" ${!paid?'disabled':''}>
+              <span class="icon">🛋️</span>
+              <span class="label">${!paid?'🔒 ':''}Furniture</span>
+              <span class="count">${furniture.length}</span>
+            </button>
+            <button class="detail-action-btn" onclick="openPaymentScreen('${m.id}')">
+              <span class="icon">💳</span>
+              <span class="label">Payment & Invoice</span>
+            </button>
+            <button class="detail-action-btn" onclick="${paid ? `generateReport('${m.id}')` : `showPaymentGate('${m.id}')`}" ${!paid?'disabled':''} style="${paid?'background:var(--accent);color:#fff;border-color:var(--accent)':''}">
+              <span class="icon">📄</span>
+              <span class="label">${!paid?'🔒 ':''}Generate PDF Report</span>
+            </button>
+          </div>
+          ${m.agent_id ? `<div class="detail-card">
+            <div class="detail-card-label">Assigned Agent</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">A</div>
+              <div>
+                <div style="font-weight:600;font-size:14px">Agent Assigned</div>
+                <div style="font-size:12px;color:var(--sub)">Will coordinate your move</div>
+              </div>
+            </div>
+          </div>` : ''}
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+function openCreateMove() {
+  document.getElementById('newMoveDate').value = new Date().toISOString().split('T')[0];
+  openModal('createMoveModal');
+}
+
+async function createMove() {
+  const btn = document.getElementById('createMoveBtn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  try {
+    await api('POST', '/api/moves', {
+      title: document.getElementById('newMoveTitle').value,
+      from_address: document.getElementById('newMoveFrom').value,
+      to_address: document.getElementById('newMoveTo').value,
+      move_date: document.getElementById('newMoveDate').value,
+    });
+    closeModal('createMoveModal');
+    loadMoves();
+    toast('Move created! 🎉', 'success');
+    ['newMoveTitle','newMoveFrom','newMoveTo'].forEach(id => document.getElementById(id).value = '');
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Create Move';
+}
+
+async function updateMoveStatus(id, status) {
+  try {
+    const m = currentMove;
+    await api('PUT', `/api/moves/${id}`, { ...m, status });
+    toast('Status updated to ' + status.replace('_',' '), 'success');
+    openMove(id);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── BOXES ────────────────────────────────────────────────────
+async function openBoxes(moveId) {
+  currentMove = currentMove || { id: moveId };
+  showScreen('boxes');
+  setTopbar('boxes');
+  document.getElementById('boxesMoveTitle').textContent = currentMove?.title || '';
+  await loadBoxes(moveId);
+}
+
+async function loadBoxes(moveId) {
+  const id = moveId || currentMove?.id;
+  const list = document.getElementById('boxesList');
+  list.innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
+  try {
+    const boxes = await api('GET', `/api/boxes/move/${id}`);
+    if (!boxes.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">No boxes yet</div><div class="empty-sub">Tap + Box to add your first</div></div>`;
+      return;
+    }
+    const catIcon = { kitchen:'🍳', bedroom:'🛏️', electronics:'💻', fragile:'⚠️', clothes:'👕', books:'📚', bathroom:'🚿', general:'📦' };
+    list.innerHTML = boxes.map(b => `
+      <div class="box-item" onclick="openBoxDetail('${b.id}')">
+        <div class="box-icon">${catIcon[b.category]||'📦'}</div>
+        <div class="box-info">
+          <div class="box-label">${b.label || 'Unlabeled Box'}</div>
+          <div class="box-meta">${b.contents || b.category || ''}</div>
+        </div>
+        <span class="badge badge-${b.status}">${b.status}</span>
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+function openAddBox() { openModal('addBoxModal'); }
+
+async function addBox() {
+  const btn = document.getElementById('addBoxBtn');
+  btn.disabled = true; btn.textContent = 'Generating QR...';
+  try {
+    const box = await api('POST', `/api/boxes/move/${currentMove.id}`, {
+      label: document.getElementById('newBoxLabel').value,
+      category: document.getElementById('newBoxCategory').value,
+      contents: document.getElementById('newBoxContents').value,
+    });
+    closeModal('addBoxModal');
+    toast('Box created with QR code!', 'success');
+    ['newBoxLabel','newBoxContents'].forEach(id => document.getElementById(id).value = '');
+    await loadBoxes();
+    openBoxDetail(box.id, box);
+  } catch(e) { toast(e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Add Box + Generate QR';
+}
+
+async function openBoxDetail(id, boxData) {
+  showScreen('box-detail');
+  const content = document.getElementById('boxDetailContent');
+  content.innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
+  try {
+    const box = boxData || await api('GET', `/api/boxes/qr/${id}`).catch(() => null) || { id };
+    const catIcon = { kitchen:'🍳', bedroom:'🛏️', electronics:'💻', fragile:'⚠️', clothes:'👕', books:'📚', bathroom:'🚿', general:'📦' };
+
+    let qrHtml = '';
+    if (box.qr_image_url?.startsWith('data:image')) {
+      qrHtml = `<div class="qr-container">
+        <img src="${box.qr_image_url}" alt="QR Code"/>
+        <div style="font-size:11px;color:#666;font-family:monospace;word-break:break-all;text-align:center">${box.qr_code}</div>
+        <button class="btn btn-secondary" onclick="navigator.share({title:'Box QR',text:'${box.label||'Box'}',url:window.location.href}).catch(()=>{})" style="width:auto;padding:8px 16px;font-size:12px">Share QR</button>
+      </div>`;
+    }
+
+    const scanHistory = box.scan_history || [];
+    const scansHtml = scanHistory.length ? scanHistory.map(s => `
+      <div class="scan-log-item">
+        <div class="scan-dot"></div>
+        <div>
+          <div class="scan-log-status">${s.status?.toUpperCase()}</div>
+          ${s.location ? `<div class="scan-log-note">📍 ${s.location}</div>` : ''}
+          ${s.notes ? `<div class="scan-log-note">${s.notes}</div>` : ''}
+          <div class="scan-log-time">${new Date(s.scanned_at).toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+    `).join('') : '<div style="color:var(--dim);font-size:13px;padding:8px 0">No scans yet</div>';
+
+    content.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <div style="font-size:36px">${catIcon[box.category]||'📦'}</div>
+        <div>
+          <div style="font-size:20px;font-weight:700">${box.label||'Unlabeled'}</div>
+          <span class="badge badge-${box.status}">${box.status}</span>
+        </div>
+      </div>
+      ${box.contents ? `<div class="card card-sm" style="margin-bottom:12px"><div style="font-size:11px;color:var(--sub);margin-bottom:4px">CONTENTS</div><div style="font-size:14px">${box.contents}</div></div>` : ''}
+      ${qrHtml}
+      <div class="card">
+        <div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:12px;letter-spacing:0.5px">SCAN HISTORY</div>
+        ${scansHtml}
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="quickScanBox('${box.qr_code}')">📷 Update Status</button>
+    `;
+  } catch(e) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+function quickScanBox(qrCode) {
+  navTo('scan');
+  document.getElementById('manualQR').value = qrCode;
+  setTimeout(() => lookupManualQR(), 300);
+}
+
+// ─── FURNITURE ────────────────────────────────────────────────
+async function openFurniture(moveId) {
+  showScreen('furniture');
+  setTopbar('furniture');
+  document.getElementById('furnMoveTitle').textContent = currentMove?.title || '';
+  await loadFurniture(moveId);
+}
+
+async function loadFurniture(moveId) {
+  const id = moveId || currentMove?.id;
+  const list = document.getElementById('furnitureList');
+  list.innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
+  try {
+    const items = await api('GET', `/api/furniture/move/${id}`);
+    const catIcon = { sofa:'🛋️', bed:'🛏️', table:'🪑', chair:'💺', wardrobe:'🚪', appliance:'🏠', tv:'📺', other:'📦' };
+    const condColor = { excellent:'var(--success)', good:'var(--accent2)', fair:'var(--warn)', poor:'var(--error)' };
+    if (!items.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">🛋️</div><div class="empty-title">No items yet</div><div class="empty-sub">Document your furniture before the move</div></div>`;
+      return;
+    }
+    list.innerHTML = items.map(f => `
+      <div class="furniture-item">
+        <div style="font-size:28px">${catIcon[f.category]||'📦'}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:15px">${f.name}</div>
+          <div style="font-size:12px;margin-top:2px">
+            <span style="color:${condColor[f.condition_before]||'var(--sub)'}">Before: ${f.condition_before||'—'}</span>
+            ${f.condition_after ? ` → <span style="color:${condColor[f.condition_after]}">After: ${f.condition_after}</span>` : ''}
+          </div>
+          ${f.damage_notes ? `<div style="font-size:11px;color:var(--error);margin-top:3px">⚠️ ${f.damage_notes}</div>` : ''}
+        </div>
+        ${!f.condition_after ? `<button onclick="markConditionAfter('${f.id}')" style="background:var(--card2);border:1px solid var(--border);color:var(--sub);font-family:inherit;font-size:11px;padding:6px 10px;border-radius:8px;cursor:pointer;">After</button>` : ''}
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+function openAddFurniture() { openModal('addFurnModal'); }
+
+async function addFurniture() {
+  const btn = document.getElementById('addFurnBtn');
+  btn.disabled = true; btn.textContent = 'Adding...';
+  try {
+    await api('POST', `/api/furniture/move/${currentMove.id}`, {
+      name: document.getElementById('newFurnName').value,
+      category: document.getElementById('newFurnCategory').value,
+      condition_before: document.getElementById('newFurnCondition').value,
+      damage_notes: document.getElementById('newFurnDamage').value,
+    });
+    closeModal('addFurnModal');
+    toast('Furniture item added!', 'success');
+    ['newFurnName','newFurnDamage'].forEach(id => document.getElementById(id).value = '');
+    loadFurniture();
+  } catch(e) { toast(e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Add Item';
+}
+
+async function markConditionAfter(id) {
+  const cond = prompt('Post-move condition? (excellent/good/fair/poor)');
+  if (!cond) return;
+  const notes = prompt('Any new damage notes? (or press Enter to skip)') || '';
+  try {
+    await api('PUT', `/api/furniture/${id}/condition-after`, { condition_after: cond, damage_notes: notes });
+    toast('Condition updated!', 'success');
+    loadFurniture();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── QR SCAN ──────────────────────────────────────────────────
+const STATUSES = ['packed','loaded','in_transit','delivered'];
+let scanStream = null;
+let scannedQR = null;
+let selectedScanStatus = '';
+let scanAnimFrame = null;
+let scanPaused = false;
+
+async function startCamera() {
+  scannedQR = null;
+  selectedScanStatus = '';
+  scanPaused = false;
+  document.getElementById('scanResult').style.display = 'none';
+  document.getElementById('cameraError').style.display = 'none';
+  stopCamera();
+
+  // Always show our custom prompt first — permission is only
+  // requested when user explicitly taps the button (required by iOS Safari)
+  document.getElementById('cameraPrompt').style.display = 'block';
+  document.getElementById('scanArea').style.display = 'none';
+  document.getElementById('scanPlaceholder').style.display = 'none';
+  document.getElementById('scanResult').style.display = 'none';
+}
+
+async function requestCameraPermission() {
+  const btn = document.getElementById('cameraPermBtn');
+  btn.disabled = true;
+  btn.textContent = 'Opening camera...';
+
+  try {
+    // Must be called directly inside a user gesture handler (button tap)
+    // This is what triggers the native browser permission popup
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+
+    // Permission granted — show camera UI
+    document.getElementById('cameraPrompt').style.display = 'none';
+    document.getElementById('scanArea').style.display = 'block';
+    document.getElementById('scanPlaceholder').style.display = 'block';
+    document.getElementById('scanFrame').className = 'scan-frame';
+    document.getElementById('scanStatus').textContent = 'Scanning...';
+
+    const video = document.getElementById('scanVideo');
+    video.srcObject = scanStream;
+    video.setAttribute('playsinline', true);
+    await video.play();
+    scanAnimFrame = requestAnimationFrame(scanFrame);
+
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Allow Camera Access';
+    document.getElementById('cameraPrompt').style.display = 'none';
+    document.getElementById('scanArea').style.display = 'none';
+    document.getElementById('scanPlaceholder').style.display = 'block';
+    document.getElementById('cameraError').style.display = 'block';
+  }
+}
+
+function skipToManual() {
+  document.getElementById('cameraPrompt').style.display = 'none';
+  document.getElementById('scanArea').style.display = 'none';
+  document.getElementById('scanPlaceholder').style.display = 'block';
+}
+
+function showCameraUI() {
+  document.getElementById('cameraPrompt').style.display = 'none';
+  document.getElementById('scanArea').style.display = 'block';
+  document.getElementById('scanPlaceholder').style.display = 'block';
+}
+
+async function launchCamera() {
+  stopCamera();
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById('scanVideo');
+    video.srcObject = scanStream;
+    video.setAttribute('playsinline', true);
+    video.play();
+    video.addEventListener('loadedmetadata', () => {
+      requestAnimationFrame(scanFrame);
+    }, { once: true });
+  } catch(e) {
+    document.getElementById('cameraError').style.display = 'block';
+    document.getElementById('scanArea').style.display = 'none';
+  }
+}
+
+function scanFrame() {
+  if (scanPaused) return;
+  const video = document.getElementById('scanVideo');
+  const canvas = document.getElementById('scanCanvas');
+  if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    scanAnimFrame = requestAnimationFrame(scanFrame);
+    return;
+  }
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // Only scan centre region for performance
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  if (typeof jsQR !== 'undefined') {
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'dontInvert'
+    });
+    if (code && code.data) {
+      onQRDetected(code.data);
+      return; // Stop loop until reset
+    }
+  }
+
+  scanAnimFrame = requestAnimationFrame(scanFrame);
+}
+
+async function onQRDetected(rawData) {
+  scanPaused = true;
+  // Flash frame green
+  document.getElementById('scanFrame').className = 'scan-frame detected';
+  document.getElementById('scanStatus').textContent = '✓ QR Detected!';
+
+  // Haptic feedback on mobile
+  if (navigator.vibrate) navigator.vibrate(80);
+
+  // Extract UUID - the QR contains a full URL, get the last path segment
+  const parts = rawData.split('/');
+  const qrCode = parts[parts.length - 1];
+
+  toast('QR detected — looking up box...', '');
+
+  try {
+    const box = await api('GET', `/api/boxes/qr/${qrCode}`);
+    scannedQR = box.qr_code;
+    showScanResult(box);
+  } catch(e) {
+    // Maybe the raw data IS the UUID directly
+    try {
+      const box2 = await api('GET', `/api/boxes/qr/${rawData}`);
+      scannedQR = box2.qr_code;
+      showScanResult(box2);
+    } catch(e2) {
+      toast('Box not found for this QR', 'error');
+      document.getElementById('scanFrame').className = 'scan-frame';
+      document.getElementById('manualQR').value = qrCode;
+      // Resume scanning
+      scanPaused = false;
+      scanAnimFrame = requestAnimationFrame(scanFrame);
+    }
+  }
+}
+
+function resetScanner() {
+  scannedQR = null;
+  selectedScanStatus = '';
+  scanPaused = false;
+  document.getElementById('scanResult').style.display = 'none';
+  document.getElementById('scanFrame').className = 'scan-frame';
+  document.getElementById('scanStatus').textContent = 'Scanning...';
+  document.getElementById('scanLocation').value = '';
+  document.getElementById('scanNotes').value = '';
+  document.getElementById('manualQR').value = '';
+  scanAnimFrame = requestAnimationFrame(scanFrame);
+}
+
+function retryCamera() {
+  document.getElementById('cameraError').style.display = 'none';
+  document.getElementById('cameraPrompt').style.display = 'block';
+  const btn = document.getElementById('cameraPermBtn');
+  btn.disabled = false;
+  btn.textContent = 'Allow Camera Access';
+}
+
+function showCameraUI() {} // no longer needed, kept for safety
+function launchCamera() {}  // no longer needed, kept for safety
+
+function stopCamera() {
+  if (scanAnimFrame) { cancelAnimationFrame(scanAnimFrame); scanAnimFrame = null; }
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  const video = document.getElementById('scanVideo');
+  if (video) video.srcObject = null;
+}
+
+async function lookupManualQR() {
+  const qr = document.getElementById('manualQR').value.trim();
+  if (!qr) return;
+  try {
+    const box = await api('GET', `/api/boxes/qr/${qr}`);
+    scannedQR = box.qr_code;
+    showScanResult(box);
+  } catch(e) {
+    toast('Box not found: ' + e.message, 'error');
+  }
+}
+
+function showScanResult(box) {
+  const catIcon = { kitchen:'🍳', bedroom:'🛏️', electronics:'💻', fragile:'⚠️', clothes:'👕', books:'📚', bathroom:'🚿', general:'📦' };
+  document.getElementById('scannedBoxCard').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:32px">${catIcon[box.category]||'📦'}</div>
+      <div>
+        <div style="font-weight:700;font-size:16px">${box.label||'Unlabeled Box'}</div>
+        <div style="margin-top:4px"><span class="badge badge-${box.status}">${box.status}</span></div>
+      </div>
+    </div>
+    ${box.contents ? `<div style="font-size:13px;color:var(--sub);margin-top:8px">${box.contents}</div>` : ''}
+    ${box.move_title ? `<div style="font-size:12px;color:var(--dim);margin-top:4px">Move: ${box.move_title}</div>` : ''}
+  `;
+  selectedScanStatus = '';
+  // Auto-select next logical status
+  const nextIdx = STATUSES.indexOf(box.status) + 1;
+  if (nextIdx > 0 && nextIdx < STATUSES.length) selectedScanStatus = STATUSES[nextIdx];
+
+  document.getElementById('statusChips').innerHTML = STATUSES.map(s => `
+    <div class="chip ${s === selectedScanStatus ? 'sel' : ''}" onclick="selectStatus('${s}',this)">${s.replace('_',' ')}</div>
+  `).join('');
+
+  document.getElementById('scanPlaceholder').style.display = 'none';
+  document.getElementById('scanResult').style.display = 'block';
+}
+
+function selectStatus(s, el) {
+  selectedScanStatus = s;
+  document.querySelectorAll('#statusChips .chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+async function submitScan() {
+  if (!scannedQR || !selectedScanStatus) { toast('Select a status first', 'error'); return; }
+  const btn = document.getElementById('scanSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Logging...';
+  try {
+    await api('POST', `/api/boxes/scan/${scannedQR}`, {
+      status: selectedScanStatus,
+      location: document.getElementById('scanLocation').value,
+      notes: document.getElementById('scanNotes').value,
+    });
+    toast(`Box marked as ${selectedScanStatus.replace('_',' ')} ✓`, 'success');
+    resetScanner();
+  } catch(e) { toast(e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Log Scan';
+}
+
+// ─── PAYMENT ─────────────────────────────────────────────────
+
+const STATUS_LABELS = {
+  'payment_pending':              { label: 'Payment Pending',       color: 'var(--warn)',    icon: '💳' },
+  'payment_under_verification':   { label: 'Under Verification',    color: '#a78bfa',        icon: '🔍' },
+  'active':                       { label: 'Active',                color: 'var(--success)', icon: '✅' },
+  'in_progress':                  { label: 'In Progress',           color: 'var(--accent2)', icon: '🚛' },
+  'completed':                    { label: 'Completed',             color: 'var(--success)', icon: '🏁' },
+  'closed':                       { label: 'Closed',                color: 'var(--dim)',     icon: '🔒' },
+};
+
+const TIMELINE_STEPS = [
+  { key: 'created',                       label: 'Move Created',             sub: 'Details entered' },
+  { key: 'payment_pending',               label: 'Payment Pending',          sub: 'Complete payment to activate' },
+  { key: 'payment_under_verification',    label: 'Payment Under Review',     sub: 'Admin verification in progress' },
+  { key: 'active',                        label: 'Move Active',              sub: 'Agent assigned, features unlocked' },
+  { key: 'in_progress',                   label: 'In Progress',              sub: 'Move execution underway' },
+  { key: 'completed',                     label: 'Completed',                sub: 'All items delivered' },
+  { key: 'closed',                        label: 'Closed',                   sub: 'Move report generated & closed' },
+];
+
+function isActive(move) {
+  return ['active', 'in_progress', 'completed'].includes(move.status);
+}
+
+async function openPaymentScreen(moveId) {
+  showScreen('payment');
+  setTopbar('payment');
+  const content = document.getElementById('paymentContent');
+  content.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+  try {
+    const data = await api('GET', `/api/payments/move/${moveId}`);
+    currentMove = { ...currentMove, id: moveId, ...data };
+    renderPaymentScreen(data);
+  } catch(e) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+function renderPaymentScreen(data) {
+  const content = document.getElementById('paymentContent');
+  const isPending = ['payment_pending', 'created'].includes(data.move_status);
+  const isVerifying = data.move_status === 'payment_under_verification';
+  const isActivated = isActive({ status: data.move_status });
+  const amtTotal = parseFloat(data.amount_total || 0);
+  const amtPaid = parseFloat(data.amount_paid || 0);
+  const amtDue = Math.max(0, amtTotal - amtPaid);
+
+  // Status indicator
+  const s = STATUS_LABELS[data.move_status] || STATUS_LABELS['payment_pending'];
+  const stepIdx = TIMELINE_STEPS.findIndex(t => t.key === data.move_status);
+
+  const timelineHtml = TIMELINE_STEPS.map((step, i) => {
+    const done = i < stepIdx;
+    const cur = i === stepIdx;
+    return `<div class="timeline-item">
+      <div class="timeline-dot ${done ? 'done' : cur ? 'current' : ''}"></div>
+      <div class="timeline-label" style="color:${cur ? 'var(--text)' : done ? 'var(--sub)' : 'var(--dim)'}">${step.label}</div>
+      <div class="timeline-sub">${step.sub}</div>
+    </div>`;
+  }).join('');
+
+  // Invoice rows
+  const pricing = data.pricing;
+  const invoiceHtml = pricing ? `
+    <div class="invoice-row"><span>Base Price</span><span>₹${pricing.base_price?.toFixed(2)}</span></div>
+    <div class="invoice-row"><span>GST (${pricing.tax_percent}%)</span><span>₹${(pricing.total - pricing.base_price - (pricing.discount||0)).toFixed(2)}</span></div>
+    ${pricing.discount ? `<div class="invoice-row"><span>Discount</span><span style="color:var(--success)">-₹${pricing.discount.toFixed(2)}</span></div>` : ''}
+    <div class="invoice-row total"><span>Total</span><span>₹${pricing.total?.toFixed(2)}</span></div>
+    ${amtPaid > 0 ? `<div class="invoice-row"><span style="color:var(--success)">Paid</span><span style="color:var(--success)">₹${amtPaid.toFixed(2)}</span></div>` : ''}
+    ${amtDue > 0 ? `<div class="invoice-row"><span style="color:var(--warn);font-weight:700">Due</span><span style="color:var(--warn);font-weight:700">₹${amtDue.toFixed(2)}</span></div>` : ''}
+  ` : '<div style="color:var(--dim);font-size:13px;padding:8px 0">Pricing not yet configured</div>';
+
+  content.innerHTML = `
+    <!-- Status badge -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <span style="font-size:28px">${s.icon}</span>
+      <div>
+        <div style="font-size:11px;color:var(--sub);font-weight:600;letter-spacing:0.5px">MOVE STATUS</div>
+        <div style="font-size:17px;font-weight:700;color:${s.color}">${s.label}</div>
+      </div>
+      ${data.invoice_number ? `<div style="margin-left:auto;font-size:11px;color:var(--dim);">#${data.invoice_number}</div>` : ''}
+    </div>
+
+    ${isPending ? `
+    <!-- Payment Gate Banner -->
+    <div class="payment-gate">
+      <div class="gate-icon">🚫</div>
+      <div class="gate-title">Move Not Active Yet</div>
+      <div class="gate-sub">To activate your move and begin tracking, please complete payment.<br>QR codes, box tracking, and agent assignment will unlock after payment.</div>
+      ${amtTotal > 0
+        ? `<button class="btn btn-primary" onclick="openPayModal('${currentMove.id}', ${amtDue})" style="max-width:240px;margin:0 auto">💳 Pay ₹${amtDue.toFixed(2)} Now</button>`
+        : `<button class="btn btn-primary" onclick="openPricingSetup('${currentMove.id}')" style="max-width:240px;margin:0 auto">Set Move Price & Pay</button>`}
+    </div>` : ''}
+
+    ${isVerifying ? `
+    <div class="card" style="border-color:#a78bfa;text-align:center;padding:20px;margin-bottom:16px">
+      <div style="font-size:36px;margin-bottom:8px">🔍</div>
+      <div style="font-weight:700;color:#a78bfa;margin-bottom:4px">Payment Under Verification</div>
+      <div style="font-size:13px;color:var(--sub)">Our team is reviewing your payment. You'll be notified once the move is activated.</div>
+    </div>` : ''}
+
+    ${isActivated ? `
+    <div class="card" style="border-color:var(--success);text-align:center;padding:20px;margin-bottom:16px">
+      <div style="font-size:36px;margin-bottom:8px">🎉</div>
+      <div style="font-weight:700;color:var(--success);margin-bottom:4px">Your move is now active!</div>
+      <div style="font-size:13px;color:var(--sub)">Our team will coordinate with you. All features are unlocked.</div>
+    </div>` : ''}
+
+    <!-- Invoice -->
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:12px;letter-spacing:0.5px">INVOICE</div>
+      ${invoiceHtml}
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+      ${isPending && amtTotal > 0 ? `
+        <button class="btn btn-primary" onclick="openPayModal('${currentMove.id}', ${amtDue})">💳 Pay Now</button>
+        <button class="btn btn-secondary" onclick="openCashModal('${currentMove.id}')">💵 Cash / Offline Payment</button>
+      ` : ''}
+      <button class="btn btn-secondary" onclick="openMove('${currentMove.id}')">← Back to Move</button>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card">
+      <div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:16px;letter-spacing:0.5px">MOVE JOURNEY</div>
+      <div class="timeline">${timelineHtml}</div>
+    </div>
+  `;
+}
+
+// Open pay-now modal
+function openPayModal(moveId, amtDue) {
+  document.getElementById('payModalTitle').textContent = `Pay ₹${parseFloat(amtDue).toFixed(2)}`;
+  document.getElementById('payModalContent').innerHTML = `
+    <div style="font-size:13px;color:var(--sub);margin-bottom:16px">Choose your preferred payment method:</div>
+    <div class="pay-method-grid">
+      <div class="pay-method-btn" onclick="selectPayMethod('upi',this)" id="pm-upi">
+        <div class="pay-method-icon">📲</div><div class="pay-method-label">UPI</div>
+      </div>
+      <div class="pay-method-btn" onclick="selectPayMethod('card',this)" id="pm-card">
+        <div class="pay-method-icon">💳</div><div class="pay-method-label">Card</div>
+      </div>
+      <div class="pay-method-btn" onclick="selectPayMethod('netbanking',this)" id="pm-netbanking">
+        <div class="pay-method-icon">🏦</div><div class="pay-method-label">Net Banking</div>
+      </div>
+      <div class="pay-method-btn" onclick="selectPayMethod('wallet',this)" id="pm-wallet">
+        <div class="pay-method-icon">👛</div><div class="pay-method-label">Wallet</div>
+      </div>
+    </div>
+    <div id="payMethodDetails" style="margin-bottom:16px"></div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:16px;text-align:center">🔒 Payments are processed securely. Test mode — no real charge.</div>
+    <button class="btn btn-primary" onclick="submitOnlinePayment('${moveId}',${amtDue})" id="payNowBtn" disabled>Pay ₹${parseFloat(amtDue).toFixed(2)}</button>
+  `;
+  window._payMethod = '';
+  openModal('payModal');
+}
+
+let _payMethod = '';
+function selectPayMethod(method, el) {
+  _payMethod = method;
+  document.querySelectorAll('.pay-method-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('payNowBtn').disabled = false;
+
+  const details = document.getElementById('payMethodDetails');
+  if (method === 'upi') {
+    details.innerHTML = `<div class="field"><label>UPI ID</label><input type="text" id="upiId" class="upi-input" placeholder="yourname@upi" inputmode="email"/></div>`;
+  } else if (method === 'card') {
+    details.innerHTML = `
+      <div class="field"><label>Card Number</label><input type="text" id="cardNum" placeholder="•••• •••• •••• ••••" inputmode="numeric" maxlength="19"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label>Expiry</label><input type="text" id="cardExp" placeholder="MM/YY" maxlength="5"/></div>
+        <div class="field"><label>CVV</label><input type="password" id="cardCvv" placeholder="•••" maxlength="3" inputmode="numeric"/></div>
+      </div>`;
+  } else {
+    details.innerHTML = `<div style="font-size:13px;color:var(--sub);padding:8px 0">You'll be redirected to complete payment via ${method}.</div>`;
+  }
+}
+
+async function submitOnlinePayment(moveId, amount) {
+  const btn = document.getElementById('payNowBtn');
+  btn.disabled = true; btn.textContent = 'Processing...';
+  try {
+    const data = await api('POST', `/api/payments/move/${moveId}/online`, {
+      payment_mode: _payMethod,
+      amount: amount,
+      transaction_id: `TXN_${Date.now()}`,
+    });
+    closeModal('payModal');
+    toast(data.message, 'success');
+    currentMove.status = data.move_status;
+    await openPaymentScreen(moveId);
+  } catch(e) {
+    toast('Payment failed: ' + e.message, 'error');
+    btn.disabled = false; btn.textContent = `Pay ₹${parseFloat(amount).toFixed(2)}`;
+  }
+}
+
+function openCashModal(moveId) {
+  window._cashMoveId = moveId;
+  openModal('cashModal');
+}
+
+async function submitCashPayment() {
+  const amount = document.getElementById('cashAmount').value;
+  if (!amount || parseFloat(amount) <= 0) { toast('Enter a valid amount', 'error'); return; }
+  const btn = document.getElementById('cashSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  try {
+    const data = await api('POST', `/api/payments/move/${window._cashMoveId}/cash`, {
+      amount: parseFloat(amount),
+      payment_mode: document.getElementById('cashMode').value,
+      notes: document.getElementById('cashNotes').value,
+    });
+    closeModal('cashModal');
+    toast(data.message, 'success');
+    await openPaymentScreen(window._cashMoveId);
+  } catch(e) {
+    toast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Mark Payment Received';
+  }
+}
+
+// Pricing setup for new moves without pricing
+function openPricingSetup(moveId) {
+  document.getElementById('payModalTitle').textContent = 'Set Move Pricing';
+  document.getElementById('payModalContent').innerHTML = `
+    <div style="font-size:13px;color:var(--sub);margin-bottom:16px">Enter move details to calculate your price:</div>
+    <div class="field"><label>Base Price (₹)</label><input type="number" id="priceBase" placeholder="5000" inputmode="decimal"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Distance (km)</label><input type="number" id="priceKm" placeholder="0" inputmode="decimal"/></div>
+      <div class="field"><label>No. of Rooms</label><input type="number" id="priceRooms" placeholder="2" inputmode="numeric"/></div>
+    </div>
+    <div class="field"><label>Floor Surcharge (₹)</label><input type="number" id="priceFloor" placeholder="0" inputmode="decimal"/></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <input type="checkbox" id="priceFragile" style="width:18px;height:18px;accent-color:var(--accent)"/>
+      <label for="priceFragile" style="font-size:14px">Has fragile items (+₹500)</label>
+    </div>
+    <div class="field"><label>Discount (₹)</label><input type="number" id="priceDiscount" placeholder="0" inputmode="decimal"/></div>
+    <button class="btn btn-primary" onclick="calculateAndPay('${moveId}')">Calculate & Proceed to Pay</button>
+  `;
+  openModal('payModal');
+}
+
+async function calculateAndPay(moveId) {
+  try {
+    const data = await api('POST', `/api/payments/move/${moveId}/initiate`, {
+      base_price: parseFloat(document.getElementById('priceBase').value) || 0,
+      distance_km: parseFloat(document.getElementById('priceKm').value) || 0,
+      num_rooms: parseInt(document.getElementById('priceRooms').value) || 0,
+      floor_surcharge: parseFloat(document.getElementById('priceFloor').value) || 0,
+      has_fragile: document.getElementById('priceFragile').checked,
+      discount: parseFloat(document.getElementById('priceDiscount').value) || 0,
+    });
+    closeModal('payModal');
+    toast(`Total: ₹${data.total.toFixed(2)} — Invoice #${data.invoice_number}`, 'success');
+    openPaymentScreen(moveId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// Show payment gate popup when blocked action is attempted
+function showPaymentGate(moveId) {
+  document.getElementById('payModalTitle').textContent = '💳 Payment Required';
+  document.getElementById('payModalContent').innerHTML = `
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:48px;margin-bottom:12px">🚫</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px;color:var(--warn)">Move Not Active Yet</div>
+      <div style="font-size:14px;color:var(--sub);line-height:1.7;margin-bottom:24px">Your move is pending activation. Please complete payment to access this feature.</div>
+      <button class="btn btn-primary" onclick="closeModal('payModal');openPaymentScreen('${moveId}')" style="max-width:240px;margin:0 auto">💳 Complete Payment</button>
+    </div>
+  `;
+  openModal('payModal');
+}
+
+async function generateReport(moveId) {
+  const id = moveId || currentMove?.id;
+  showScreen('report');
+  setTopbar('report');
+  const content = document.getElementById('reportContent');
+  content.innerHTML = '<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="margin-top:16px;color:var(--sub);font-size:13px">Generating PDF...</div></div>';
+  try {
+    const r = await fetch(`${BASE}/api/reports/generate/${id}`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+    });
+    if (r.ok) {
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `move-report-${id}.pdf`; a.click();
+      content.innerHTML = `
+        <div style="text-align:center;padding:40px">
+          <div style="font-size:56px;margin-bottom:16px">✅</div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:8px">Report Downloaded!</div>
+          <div style="color:var(--sub);font-size:13px;margin-bottom:24px">Check your Downloads folder</div>
+          <button class="btn btn-primary" onclick="generateReport('${id}')">Download Again</button>
+        </div>`;
+    } else {
+      throw new Error('Report generation failed');
+    }
+  } catch(e) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Failed</div><div class="empty-sub">${e.message}</div></div>`;
+  }
+}
+
+// ─── MODALS ───────────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ─── TOAST ────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3000);
+}
+// ─── ADMIN DASHBOARD ─────────────────────────────────────────
+let adminTab = 'overview';
+let adminData = {};
+
+function openAdminDashboard() {
+  showScreen('admin');
+  setTopbar('admin');
+  switchAdminTab('overview');
+}
+
+function switchAdminTab(tab) {
+  adminTab = tab;
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  const btn = document.getElementById('atab-' + tab);
+  if (btn) btn.classList.add('active');
+  document.getElementById('adminContent').innerHTML =
+    '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+  ({ overview: renderAdminOverview, moves: renderAdminMoves,
+     payments: renderAdminPayments, users: renderAdminUsers }[tab] || (() => {}))();
+}
+
+async function renderAdminOverview() {
+  const c = document.getElementById('adminContent');
+  try {
+    const [stats, pending] = await Promise.all([
+      api('GET', '/api/admin/stats'),
+      api('GET', '/api/admin/payments/pending'),
+    ]);
+    adminData.stats = stats; adminData.pending = pending;
+    c.innerHTML = `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:16px;padding:20px;margin-bottom:16px;text-align:center">
+        <div style="font-size:11px;color:var(--sub);font-weight:600;letter-spacing:0.8px;margin-bottom:4px">TOTAL REVENUE COLLECTED</div>
+        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--accent)">₹${parseFloat(stats.payments.total_collected).toLocaleString('en-IN')}</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">MOVES</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800">${stats.moves.total}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Total Moves</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--warn)">${stats.moves.pending_payment}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Pending Payment</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#a78bfa">${stats.moves.under_verification}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Verifying</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--success)">${parseInt(stats.moves.active)+parseInt(stats.moves.in_progress)}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Active</div></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">USERS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--accent2)">${stats.users.customers}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Customers</div></div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--accent)">${stats.users.agents}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Agents</div></div>
+      </div>
+      ${pending.length ? `
+      <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">⚡ NEEDS ATTENTION (${pending.length})</div>
+      <div class="card" style="padding:0">
+        ${pending.map(p => `
+        <div style="padding:14px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><div style="font-weight:600;font-size:14px">${p.move_title}</div>
+            <div style="font-size:12px;color:var(--sub)">👤 ${p.customer_name} · ${p.payment_mode}</div></div>
+            <div style="text-align:right"><div style="font-weight:700;color:var(--accent)">₹${parseFloat(p.amount).toLocaleString('en-IN')}</div>
+            <div style="font-size:11px;color:var(--dim)">${new Date(p.created_at).toLocaleDateString('en-IN')}</div></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button onclick="adminVerifyPayment('${p.id}','approve')" style="flex:1;padding:9px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;color:var(--success);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✓ Approve</button>
+            <button onclick="adminVerifyPayment('${p.id}','reject')" style="flex:1;padding:9px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:8px;color:var(--error);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✗ Reject</button>
+          </div>
+        </div>`).join('')}
+      </div>` : `
+      <div class="card" style="text-align:center;padding:20px">
+        <div style="font-size:28px;margin-bottom:6px">✅</div>
+        <div style="font-size:13px;color:var(--sub)">No pending verifications</div>
+      </div>`}
+    `;
+  } catch(e) { c.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`; }
+}
+
+async function renderAdminMoves() {
+  const c = document.getElementById('adminContent');
+  try {
+    const [moves, users] = await Promise.all([api('GET','/api/admin/moves'), api('GET','/api/admin/users')]);
+    adminData.moves = moves;
+    adminData.agents = users.filter(u => u.role === 'agent' || u.role === 'admin');
+    c.innerHTML = `
+      <div style="margin-bottom:12px;display:flex;gap:8px">
+        <input type="text" id="moveSearchInput" placeholder="Search moves…" oninput="filterAdminMoves()"
+          style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-family:inherit;font-size:14px;outline:none"/>
+        <select id="moveStatusFilter" onchange="filterAdminMoves()"
+          style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:10px;font-family:inherit;font-size:12px;outline:none">
+          <option value="">All</option>
+          <option value="payment_pending">Pending Payment</option>
+          <option value="payment_under_verification">Verifying</option>
+          <option value="active">Active</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div id="adminMovesList"></div>`;
+    filterAdminMoves();
+  } catch(e) { c.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`; }
+}
+
+function filterAdminMoves() {
+  const q = (document.getElementById('moveSearchInput')?.value || '').toLowerCase();
+  const filter = document.getElementById('moveStatusFilter')?.value || '';
+  const moves = (adminData.moves || []).filter(m =>
+    (!q || m.title.toLowerCase().includes(q) || (m.customer_name||'').toLowerCase().includes(q)) &&
+    (!filter || m.status === filter)
+  );
+  const list = document.getElementById('adminMovesList');
+  if (!list) return;
+  if (!moves.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No matches</div></div>'; return; }
+  list.innerHTML = moves.map(m => {
+    const s = STATUS_LABELS[m.status] || { label: m.status, color: 'var(--sub)', icon: '📦' };
+    const agentOpts = (adminData.agents||[]).map(a =>
+      `<option value="${a.id}" ${m.agent_id===a.id?'selected':''}>${a.name}</option>`).join('');
+    const canForce = ['payment_pending','payment_under_verification','created'].includes(m.status);
+    return `
+    <div class="card" style="margin-bottom:10px;padding:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <div><div style="font-weight:700">${m.title}</div>
+        <div style="font-size:12px;color:var(--sub)">👤 ${m.customer_name||'—'} · ${m.customer_email||''}</div></div>
+        <span style="font-size:20px">${s.icon}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:10px">
+        <span style="color:${s.color};font-weight:600">${s.label}</span>
+        <span style="color:var(--dim)">📦 ${m.total_boxes} · ₹${parseFloat(m.amount_collected||0).toLocaleString('en-IN')}</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <select id="agsel-${m.id}" style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:8px;font-family:inherit;font-size:12px;outline:none">
+          <option value="">— Assign Agent —</option>${agentOpts}
+        </select>
+        <button onclick="doAssignAgent('${m.id}')" style="padding:8px 12px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Assign</button>
+        ${canForce?`<button onclick="doForceActivate('${m.id}')" style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;color:var(--success);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">⚡ Force</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function doAssignAgent(moveId) {
+  const agentId = document.getElementById('agsel-'+moveId)?.value;
+  if (!agentId) { toast('Select an agent first', 'error'); return; }
+  try {
+    const data = await api('PATCH', `/api/admin/moves/${moveId}/assign-agent`, { agent_id: agentId });
+    toast(`Agent "${data.agent.name}" assigned ✓`, 'success');
+    renderAdminMoves();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function doForceActivate(moveId) {
+  if (!confirm('Force-activate this move without payment verification?')) return;
+  try {
+    await api('POST', `/api/admin/moves/${moveId}/force-activate`);
+    toast('Move force-activated ✓', 'success');
+    renderAdminMoves();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function renderAdminPayments() {
+  const c = document.getElementById('adminContent');
+  try {
+    const [pending, all] = await Promise.all([
+      api('GET','/api/admin/payments/pending'),
+      api('GET','/api/admin/payments'),
+    ]);
+    const statusColor = { success:'var(--success)', under_verification:'#a78bfa', failed:'var(--error)', pending:'var(--warn)' };
+    c.innerHTML = `
+      ${pending.length ? `
+      <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">⚡ PENDING VERIFICATION (${pending.length})</div>
+      <div class="card" style="padding:0;margin-bottom:16px">
+        ${pending.map(p => `
+        <div style="padding:14px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between">
+            <div><div style="font-weight:600">${p.move_title}</div>
+            <div style="font-size:12px;color:var(--sub)">👤 ${p.customer_name} · ${p.payment_mode.replace('_',' ')}</div>
+            ${p.recorded_by_name?`<div style="font-size:11px;color:var(--dim)">Agent: ${p.recorded_by_name}</div>`:''}</div>
+            <div style="text-align:right">
+              <div style="font-weight:700;font-size:16px;color:var(--accent)">₹${parseFloat(p.amount).toLocaleString('en-IN')}</div>
+              <div style="font-size:11px;color:var(--dim)">${new Date(p.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button onclick="adminVerifyPayment('${p.id}','approve')" style="flex:1;padding:9px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;color:var(--success);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✓ Approve</button>
+            <button onclick="adminVerifyPayment('${p.id}','reject')" style="flex:1;padding:9px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:8px;color:var(--error);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✗ Reject</button>
+          </div>
+        </div>`).join('')}
+      </div>` : ''}
+      <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">ALL PAYMENTS</div>
+      <div class="card" style="padding:0">
+        ${all.length ? all.map(p => `
+        <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.move_title}</div>
+              <div style="font-size:11px;color:var(--sub)">${p.customer_name} · ${p.payment_mode.replace('_',' ')}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;margin-left:10px">
+              <div style="font-weight:700;color:var(--accent)">₹${parseFloat(p.amount).toLocaleString('en-IN')}</div>
+              <div style="font-size:11px;font-weight:600;color:${statusColor[p.status]||'var(--sub)'}">${p.status.replace('_',' ')}</div>
+            </div>
+          </div>
+        </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--dim)">No payments yet</div>'}
+      </div>`;
+  } catch(e) { c.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`; }
+}
+
+async function renderAdminUsers() {
+  const c = document.getElementById('adminContent');
+  try {
+    const users = await api('GET','/api/admin/users');
+    adminData.users = users;
+    const roleColor = { admin:'#a78bfa', agent:'var(--accent)', customer:'var(--accent2)' };
+    const grouped = {
+      admin: users.filter(u=>u.role==='admin'),
+      agent: users.filter(u=>u.role==='agent'),
+      customer: users.filter(u=>u.role==='customer'),
+    };
+    c.innerHTML = ['admin','agent','customer'].map((role,i) => `
+      ${i>0?'<div style="height:8px"></div>':''}
+      <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">${role.toUpperCase()}S (${grouped[role].length})</div>
+      <div class="card" style="padding:0">
+        ${grouped[role].length ? grouped[role].map(u => `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)">
+          <div style="width:36px;height:36px;border-radius:50%;background:${roleColor[u.role]};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">
+            ${u.name.split(' ').map(w=>w[0]).join('').substring(0,2)}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600">${u.name}</div>
+            <div style="font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.email}</div>
+            ${u.total_moves>0?`<div style="font-size:11px;color:var(--dim)">${u.total_moves} moves</div>`:''}
+          </div>
+          <select onchange="doChangeUserRole('${u.id}',this.value)"
+            style="background:var(--card2);border:1px solid var(--border);color:${roleColor[u.role]};padding:6px 8px;border-radius:8px;font-family:inherit;font-size:11px;font-weight:700;outline:none;cursor:pointer;flex-shrink:0">
+            <option value="customer" ${u.role==='customer'?'selected':''}>Customer</option>
+            <option value="agent" ${u.role==='agent'?'selected':''}>Agent</option>
+            <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+          </select>
+        </div>`).join('') : '<div style="padding:16px;color:var(--dim);font-size:13px;text-align:center">None</div>'}
+      </div>`).join('');
+  } catch(e) { c.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`; }
+}
+
+async function adminVerifyPayment(paymentId, action) {
+  try {
+    const data = await api('POST', `/api/admin/payments/${paymentId}/verify`, { action });
+    toast(data.message, action==='approve' ? 'success' : 'error');
+    switchAdminTab(adminTab);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function doChangeUserRole(userId, newRole) {
+  try {
+    await api('PATCH', `/api/admin/users/${userId}/role`, { role: newRole });
+    toast(`Role updated to ${newRole} ✓`, 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+</script>
+</body>
+</html>

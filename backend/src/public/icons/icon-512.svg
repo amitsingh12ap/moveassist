@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0a0a0f" rx="102.4"/>
+  <rect x="51.2" y="51.2" width="409.6" height="409.6" fill="#1a1a2f" rx="76.8"/>
+  <text x="50%" y="52%" font-family="Arial Black,sans-serif" font-weight="900" font-size="194.56" fill="#f0c040" text-anchor="middle" dominant-baseline="middle">M</text>
+  <text x="50%" y="78%" font-family="Arial,sans-serif" font-size="61.44" fill="#6060a0" text-anchor="middle">MOVE</text>
+</svg>

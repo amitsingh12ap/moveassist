@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoveAssist | Control Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #0f1729;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --bg: #f6f7f8;
+  --white: #ffffff;
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --green-50: #f0fdf4; --green-100: #dcfce7; --green-500: #22c55e; --green-600: #16a34a; --green-700: #15803d;
+  --blue-50: #eff6ff; --blue-100: #dbeafe; --blue-600: #2563eb; --blue-700: #1d4ed8;
+  --amber-50: #fffbeb; --amber-100: #fef3c7; --amber-500: #f59e0b; --amber-600: #d97706; --amber-700: #b45309;
+  --red-50: #fef2f2; --red-100: #fee2e2; --red-500: #ef4444; --red-600: #dc2626; --red-700: #b91c1c;
+  --emerald-50: #ecfdf5; --emerald-100: #d1fae5; --emerald-500: #10b981; --emerald-600: #059669; --emerald-700: #047857;
+}
+
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--slate-900); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+/* ═══ VIEWS ═══ */
+.view { display: none; }
+.view.active { display: flex; }
+
+/* ═══════════════════════════════════
+   LOGIN
+═══════════════════════════════════ */
+#view-login {
+  min-height: 100vh; align-items: center; justify-content: center;
+  padding: 16px; background: var(--bg);
+}
+.login-card {
+  width: 100%; max-width: 420px; background: var(--white);
+  padding: 32px; border-radius: 16px; border: 1px solid var(--slate-200);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.login-logo {
+  display: flex; flex-direction: column; align-items: center; margin-bottom: 40px;
+}
+.login-logo-icon {
+  width: 48px; height: 48px; background: var(--primary);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px; box-shadow: 0 8px 20px rgba(15,23,41,0.2);
+}
+.login-logo-icon svg { width: 28px; height: 28px; color: white; }
+.login-logo h1 { font-size: 22px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+.login-logo p { font-size: 13px; color: var(--slate-500); margin-top: 4px; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+.form-group .label-row { display: flex; justify-content: space-between; align-items: center; }
+.form-group a { font-size: 12px; color: var(--accent); font-weight: 600; text-decoration: none; }
+.form-group a:hover { text-decoration: underline; }
+.form-input {
+  width: 100%; padding: 13px 16px; border: 1px solid var(--slate-200);
+  border-radius: 10px; font-family: inherit; font-size: 14px; color: var(--primary);
+  background: var(--white); outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+.form-input::placeholder { color: var(--slate-400); }
+.checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+.checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+.checkbox-row label { font-size: 14px; color: var(--slate-600); cursor: pointer; }
+.btn-login {
+  width: 100%; padding: 15px 24px; background: var(--accent); color: white;
+  border: none; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 14px rgba(37,99,235,0.3); transition: background 0.15s, transform 0.1s;
+}
+.btn-login:hover { background: var(--accent-hover); }
+.btn-login:active { transform: scale(0.98); }
+.btn-login svg { width: 20px; height: 20px; }
+.login-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--slate-100); text-align: center; }
+.login-footer p { font-size: 13px; color: var(--slate-500); }
+.login-footer a { color: var(--accent); font-weight: 700; text-decoration: none; margin-left: 4px; }
+.login-badges { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 24px; opacity: 0.45; }
+.login-badge { display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--slate-500); }
+.login-badge svg { width: 12px; height: 12px; }
+.login-error { margin-top: 12px; text-align: center; font-size: 13px; color: var(--red-600); display: none; }
+.login-hints { margin-top: 16px; padding: 12px; background: var(--slate-50); border-radius: 8px; }
+.login-hints p { font-size: 11px; color: var(--slate-500); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.login-hints span { display: block; font-size: 12px; color: var(--slate-600); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+
+/* ═══════════════════════════════════
+   ADMIN LAYOUT
+═══════════════════════════════════ */
+#view-admin { min-height: 100vh; }
+
+.admin-layout { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+  width: 256px; background: var(--primary); display: flex; flex-direction: column;
+  border-right: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; position: sticky;
+  top: 0; height: 100vh; overflow-y: auto;
+}
+.sidebar-brand { padding: 24px; display: flex; align-items: center; gap: 12px; }
+.sidebar-brand-icon {
+  background: var(--accent); border-radius: 8px; padding: 6px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.sidebar-brand-icon svg { width: 24px; height: 24px; color: white; }
+.sidebar-brand-text h1 { color: white; font-size: 17px; font-weight: 700; line-height: 1; }
+.sidebar-brand-text p { color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-top: 4px; }
+.sidebar-nav { flex: 1; padding: 8px 16px; display: flex; flex-direction: column; gap: 2px; }
+.nav-link {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  border-radius: 8px; color: #94a3b8; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: color 0.15s, background 0.15s; border: none;
+  background: none; width: 100%; text-align: left; text-decoration: none;
+}
+.nav-link:hover { color: white; background: rgba(255,255,255,0.07); }
+.nav-link.active { background: var(--accent); color: white; }
+.nav-link svg { width: 20px; height: 20px; flex-shrink: 0; }
+.nav-link .badge {
+  margin-left: auto; background: var(--red-500); color: white;
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 18px; text-align: center;
+}
+.sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+.sidebar-footer .nav-link { color: #ef4444; }
+.sidebar-footer .nav-link:hover { background: rgba(239,68,68,0.1); color: #f87171; }
+
+/* Main */
+.admin-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Header */
+.admin-header {
+  height: 64px; background: var(--white); border-bottom: 1px solid var(--slate-200);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; flex-shrink: 0; position: sticky; top: 0; z-index: 10;
+}
+.header-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--slate-500); }
+.header-breadcrumb .current { color: var(--primary); font-weight: 600; }
+.header-breadcrumb svg { width: 16px; height: 16px; color: var(--slate-400); }
+.header-actions { display: flex; align-items: center; gap: 24px; }
+.header-search { position: relative; }
+.header-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--slate-400); }
+.header-search input {
+  background: var(--slate-100); border: none; border-radius: 8px;
+  padding: 8px 12px 8px 36px; font-size: 14px; font-family: inherit;
+  width: 240px; outline: none; color: var(--primary); transition: box-shadow 0.15s;
+}
+.header-search input:focus { box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+.notif-btn { position: relative; color: var(--slate-500); cursor: pointer; background: none; border: none; padding: 4px; }
+.notif-btn:hover { color: var(--primary); }
+.notif-btn svg { width: 24px; height: 24px; display: block; }
+.notif-dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: var(--red-500); border-radius: 50%; border: 2px solid white; }
+.header-user { display: flex; align-items: center; gap: 12px; padding-left: 16px; border-left: 1px solid var(--slate-200); }
+.header-user-text { text-align: right; }
+.header-user-text .name { font-size: 14px; font-weight: 600; color: var(--primary); }
+.header-user-text .role { font-size: 10px; color: var(--slate-500); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.header-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--slate-200); border: 2px solid var(--slate-100); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: var(--primary); }
+
+/* Content */
+.admin-content { flex: 1; overflow-y: auto; padding: 32px; }
+.admin-content::-webkit-scrollbar { width: 6px; }
+.admin-content::-webkit-scrollbar-track { background: transparent; }
+.admin-content::-webkit-scrollbar-thumb { background: var(--slate-200); border-radius: 3px; }
+
+/* Panels */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ═══════════════════════════════════
+   KPI CARDS
+═══════════════════════════════════ */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 32px; }
+.kpi-card {
+  background: var(--white); padding: 24px; border-radius: 10px;
+  border: 1px solid var(--slate-200); box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  animation: fadeUp 0.3s ease both;
+}
+.kpi-card:nth-child(2) { animation-delay: 0.05s; }
+.kpi-card:nth-child(3) { animation-delay: 0.1s; }
+.kpi-card:nth-child(4) { animation-delay: 0.15s; }
+@keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+.kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.kpi-icon { padding: 8px; border-radius: 8px; display: flex; }
+.kpi-icon svg { width: 20px; height: 20px; }
+.kpi-trend { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+.kpi-label { font-size: 14px; font-weight: 500; color: var(--slate-500); }
+.kpi-value { font-size: 28px; font-weight: 800; color: var(--primary); margin-top: 4px; letter-spacing: -0.5px; }
+
+/* ═══════════════════════════════════
+   TABLE CARD
+═══════════════════════════════════ */
+.card {
+  background: var(--white); border-radius: 10px;
+  border: 1px solid var(--slate-200); box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  overflow: hidden; margin-bottom: 24px;
+}
+.card-header { padding: 20px 24px; border-bottom: 1px solid var(--slate-100); display: flex; align-items: center; justify-content: space-between; }
+.card-header-left h2 { font-size: 17px; font-weight: 700; color: var(--primary); }
+.card-header-left p { font-size: 13px; color: var(--slate-500); margin-top: 2px; }
+.card-header-actions { display: flex; gap: 10px; }
+
+/* Buttons */
+.btn { padding: 8px 16px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border: none; transition: all 0.15s; }
+.btn svg { width: 16px; height: 16px; }
+.btn-primary { background: var(--accent); color: white; box-shadow: 0 1px 3px rgba(37,99,235,0.3); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-outline { background: var(--white); color: var(--slate-600); border: 1px solid var(--slate-200); }
+.btn-outline:hover { background: var(--slate-50); }
+.btn-success { background: var(--emerald-50); color: var(--emerald-700); border: 1px solid var(--emerald-100); }
+.btn-success:hover { background: var(--emerald-100); }
+.btn-danger { background: var(--red-50); color: var(--red-700); border: 1px solid var(--red-100); }
+.btn-danger:hover { background: var(--red-100); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn-group { display: flex; gap: 6px; }
+.icon-btn { width: 32px; height: 32px; padding: 0; border-radius: 8px; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--slate-400); transition: all 0.15s; }
+.icon-btn:hover { background: var(--accent); background: rgba(37,99,235,0.06); color: var(--accent); }
+.icon-btn svg { width: 18px; height: 18px; }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+thead tr { background: var(--slate-50); }
+th { padding: 12px 24px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--slate-500); border-bottom: 1px solid var(--slate-200); white-space: nowrap; }
+td { padding: 14px 24px; border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--slate-50); }
+.customer-cell { display: flex; align-items: center; gap: 10px; }
+.avatar-initials {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--slate-200);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--slate-600); flex-shrink: 0;
+}
+.move-id { font-weight: 700; color: var(--primary); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 700; }
+.badge-blue { background: var(--blue-100); color: var(--blue-700); }
+.badge-amber { background: var(--amber-100); color: var(--amber-700); }
+.badge-green { background: var(--green-100); color: var(--green-700); }
+.badge-red { background: var(--red-100); color: var(--red-700); }
+.badge-slate { background: var(--slate-100); color: var(--slate-700); }
+.badge-emerald { background: var(--emerald-100); color: var(--emerald-700); }
+
+/* Pagination */
+.table-footer {
+  padding: 14px 24px; background: var(--white); border-top: 1px solid var(--slate-100);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.table-footer span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--slate-500); }
+.pagination { display: flex; gap: 4px; }
+.page-btn {
+  width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--slate-200);
+  background: var(--white); font-size: 12px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; color: var(--slate-600);
+  transition: all 0.15s;
+}
+.page-btn:hover { background: var(--slate-50); }
+.page-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+.page-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ═══════════════════════════════════
+   DASHBOARD BOTTOM GRID
+═══════════════════════════════════ */
+.bottom-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+.chart-bars { height: 160px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 0 4px; }
+.chart-bar { flex: 1; background: var(--slate-100); border-radius: 6px 6px 0 0; position: relative; cursor: pointer; }
+.chart-bar-fill { position: absolute; bottom: 0; width: 100%; border-radius: 6px 6px 0 0; background: rgba(37,99,235,0.35); transition: background 0.2s; }
+.chart-bar:hover .chart-bar-fill { background: var(--accent); }
+.chart-bar.highlight .chart-bar-fill { background: var(--accent); }
+.chart-labels { display: flex; justify-content: space-between; padding: 8px 4px 0; }
+.chart-labels span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--slate-400); flex: 1; text-align: center; }
+
+.insights-card { background: var(--primary); border-radius: 10px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; color: white; }
+.insights-card h3 { font-size: 17px; font-weight: 700; }
+.insights-card p { font-size: 13px; color: var(--slate-400); margin-top: 6px; line-height: 1.5; }
+.insights-list { margin-top: 24px; display: flex; flex-direction: column; gap: 14px; }
+.insight-item { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #cbd5e1; font-weight: 500; }
+.insight-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.insights-btn {
+  margin-top: 24px; padding: 10px; width: 100%; background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: white;
+  font-family: inherit; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; cursor: pointer; transition: background 0.15s;
+}
+.insights-btn:hover { background: rgba(255,255,255,0.12); }
+
+/* ═══════════════════════════════════
+   PAYMENTS PANEL
+═══════════════════════════════════ */
+.payment-card {
+  background: var(--white); border: 1px solid var(--slate-200); border-radius: 10px;
+  padding: 20px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.payment-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.payment-customer strong { font-size: 15px; font-weight: 700; color: var(--primary); display: block; }
+.payment-customer span { font-size: 12px; color: var(--slate-500); }
+.payment-amount { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; margin: 8px 0; }
+.payment-meta { font-size: 12px; color: var(--slate-500); margin-bottom: 14px; }
+.payment-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.payment-agent { font-size: 11px; color: var(--slate-400); }
+.empty-state { text-align: center; padding: 64px 24px; color: var(--slate-500); }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 15px; font-weight: 600; color: var(--slate-700); }
+.empty-state span { font-size: 13px; }
+
+/* ═══════════════════════════════════
+   MODAL
+═══════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,41,0.5);
+  backdrop-filter: blur(3px); z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--white); border-radius: 16px; padding: 28px;
+  width: 460px; max-width: calc(100vw - 32px);
+  transform: translateY(10px) scale(0.98); transition: transform 0.2s;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(15,23,41,0.2);
+}
+.modal-overlay.open .modal { transform: translateY(0) scale(1); }
+.modal-title { font-size: 20px; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
+.modal-sub { font-size: 13px; color: var(--slate-500); margin-bottom: 24px; }
+.modal-footer { display: flex; gap: 10px; margin-top: 24px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 5px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 10px 14px; border: 1px solid var(--slate-200);
+  border-radius: 8px; font-family: inherit; font-size: 14px; color: var(--primary);
+  outline: none; background: var(--white); transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.field-info { background: var(--slate-50); border-radius: 8px; padding: 14px; margin-bottom: 16px; border: 1px solid var(--slate-200); }
+.field-info strong { display: block; font-size: 15px; color: var(--primary); }
+.field-info span { font-size: 13px; color: var(--slate-500); }
+.field-amount { font-size: 28px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; margin: 4px 0; }
+.select-inline { background: var(--white); border: 1px solid var(--slate-200); color: var(--primary); padding: 5px 8px; border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 500; outline: none; cursor: pointer; }
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--primary); color: white;
+  padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 500;
+  z-index: 999; transform: translateY(20px); opacity: 0;
+  transition: all 0.25s; max-width: 320px;
+  box-shadow: 0 8px 24px rgba(15,23,41,0.25);
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { background: var(--emerald-600); }
+#toast.error { background: var(--red-600); }
+
+/* Spinner */
+.spinner { width: 20px; height: 20px; border: 2px solid var(--slate-200); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-center { text-align: center; padding: 64px; }
+
+/* Section title */
+.section-title { font-size: 20px; font-weight: 800; color: var(--primary); margin-bottom: 20px; letter-spacing: -0.3px; }
+.section-sub { font-size: 14px; color: var(--slate-500); margin-bottom: 24px; margin-top: -14px; }
+
+/* Search row */
+.toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+.toolbar-search { position: relative; }
+.toolbar-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--slate-400); }
+.toolbar-search input {
+  background: var(--white); border: 1px solid var(--slate-200); border-radius: 8px;
+  padding: 9px 14px 9px 36px; font-family: inherit; font-size: 13px;
+  color: var(--primary); outline: none; width: 240px; transition: box-shadow 0.15s;
+}
+.toolbar-search input:focus { box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+
+/* Alert */
+.alert { padding: 14px 18px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+.alert-amber { background: var(--amber-50); border: 1px solid var(--amber-100); color: var(--amber-700); }
+.alert-amber svg { color: var(--amber-500); flex-shrink: 0; }
+.alert-btn { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--amber-700); background: rgba(245,158,11,0.15); border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════
+     LOGIN
+═══════════════════════════════════ -->
+<div id="view-login" class="view active">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
+      <h1>MoveAssist</h1>
+      <p>Professional Logistics Management</p>
+    </div>
+
+    <div class="form-group">
+      <label for="loginEmail">Email Address</label>
+      <input class="form-input" id="loginEmail" type="email" placeholder="e.g., alex@company.com" value="admin@moveassist.com" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <div class="label-row">
+        <label for="loginPassword">Password</label>
+        <a href="#">Forgot password?</a>
+      </div>
+      <input class="form-input" id="loginPassword" type="password" placeholder="Enter your password" value="admin123" autocomplete="current-password"/>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="remember" checked/>
+      <label for="remember">Keep me signed in</label>
+    </div>
+
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">
+      <span>Sign In to Dashboard</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <div id="loginError" class="login-error"></div>
+
+    <div class="login-hints">
+      <p>Demo Credentials</p>
+      <span>admin@moveassist.com / admin123</span>
+      <span>agent@moveassist.com / agent123</span>
+      <span>amit@test.com / test123</span>
+    </div>
+
+    <div class="login-badges">
+      <div class="login-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        AES-256 Encrypted
+      </div>
+      <div style="width:4px;height:4px;background:var(--slate-300);border-radius:50%"></div>
+      <div class="login-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        ISO Certified
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     ADMIN VIEW
+═══════════════════════════════════ -->
+<div id="view-admin" class="view">
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect width="13" height="8" x="9" y="13" rx="1"/><path d="M12 17v4"/><path d="M9 21h6"/></svg>
+        </div>
+        <div class="sidebar-brand-text">
+          <h1>MoveAssist</h1>
+          <p>SaaS Control Center</p>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-link active" id="nav-dashboard" onclick="showPanel('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+          Dashboard
+        </button>
+        <button class="nav-link" id="nav-moves" onclick="showPanel('moves')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m17 8-5-5-5 5"/><path d="M12 3v14"/><path d="M20 17H4"/><path d="m7 22 5-5 5 5"/></svg>
+          Moves
+        </button>
+        <button class="nav-link" id="nav-payments" onclick="showPanel('payments')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="22" height="16" x="1" y="4" rx="2"/><path d="M1 10h22"/></svg>
+          Payments
+          <span class="badge" id="pendingBadge" style="display:none">0</span>
+        </button>
+        <button class="nav-link" id="nav-agents" onclick="showPanel('agents')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Agents
+        </button>
+        <button class="nav-link" id="nav-users" onclick="showPanel('users')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+          Users
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="nav-link" onclick="doLogout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#ef4444"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Log Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="admin-main">
+      <header class="admin-header">
+        <div class="header-breadcrumb">
+          <span>Dashboard</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="current" id="headerCurrent">Overview</span>
+        </div>
+        <div class="header-actions">
+          <div class="header-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" placeholder="Global search..." id="globalSearch" oninput="handleGlobalSearch()"/>
+          </div>
+          <button class="notif-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-dot" id="notifDot" style="display:none"></span>
+          </button>
+          <div class="header-user">
+            <div class="header-user-text">
+              <div class="name" id="headerName">Admin</div>
+              <div class="role">Senior Admin</div>
+            </div>
+            <div class="header-avatar" id="headerAvatar">A</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        <!-- DASHBOARD -->
+        <div class="panel active" id="panel-dashboard">
+          <div id="dashboardContent"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+
+        <!-- MOVES -->
+        <div class="panel" id="panel-moves">
+          <div class="section-title">Moves</div>
+          <p class="section-sub">Real-time status of all current and upcoming transfers.</p>
+          <div id="movesContent"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+
+        <!-- PAYMENTS -->
+        <div class="panel" id="panel-payments">
+          <div class="section-title">Payment Verifications</div>
+          <p class="section-sub">Review and approve pending offline payments before activating moves.</p>
+          <div id="paymentsContent"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+
+        <!-- AGENTS -->
+        <div class="panel" id="panel-agents">
+          <div class="section-title">Agents</div>
+          <p class="section-sub">Manage your field agents and assign them to moves.</p>
+          <div id="agentsContent"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+
+        <!-- USERS -->
+        <div class="panel" id="panel-users">
+          <div class="section-title">Users</div>
+          <p class="section-sub">Manage all registered users and their access roles.</p>
+          <div id="usersContent"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     MODALS
+═══════════════════════════════════ -->
+<div class="modal-overlay" id="assignModal" onclick="closeModal('assignModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Assign Agent</div>
+    <div class="modal-sub">Assign a field agent to manage this move.</div>
+    <div class="field-info" id="assignMoveInfo"></div>
+    <div class="field">
+      <label>Select Agent</label>
+      <select id="agentSelect" class="form-input"><option value="">— Unassigned —</option></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('assignModal')" style="flex:1">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAssign()" id="assignBtn" style="flex:2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Assign Agent
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="verifyModal" onclick="closeModal('verifyModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Verify Payment</div>
+    <div class="modal-sub">Review and approve or reject this offline payment record.</div>
+    <div id="verifyPaymentInfo"></div>
+    <div class="field"><label>Admin Notes (optional)</label><input type="text" id="verifyNotes" placeholder="Add verification notes…" class="form-input"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="submitVerify('reject')" id="rejectBtn" style="flex:1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        Reject
+      </button>
+      <button class="btn btn-success" onclick="submitVerify('approve')" id="approveBtn" style="flex:2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+        Approve Payment
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="createAgentModal" onclick="closeModal('createAgentModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Create Agent Account</div>
+    <div class="modal-sub">Add a new field agent who can manage and scan moves.</div>
+    <div class="field"><label>Full Name</label><input type="text" id="agentName" placeholder="e.g. Vijay Kumar" class="form-input"/></div>
+    <div class="field"><label>Email Address</label><input type="email" id="agentEmail" placeholder="vijay@moveassist.com" class="form-input"/></div>
+    <div class="field"><label>Password</label><input type="password" id="agentPassword" placeholder="Minimum 8 characters" class="form-input"/></div>
+    <div class="field"><label>Phone</label><input type="tel" id="agentPhone" placeholder="+91-9999999999" class="form-input"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('createAgentModal')" style="flex:1">Cancel</button>
+      <button class="btn btn-primary" onclick="submitCreateAgent()" id="createAgentBtn" style="flex:2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+        Create Agent
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Mark Move as Paid -->
+<div class="modal-overlay" id="markPaidModal" onclick="closeModal('markPaidModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Mark Payment Received</div>
+    <div class="modal-sub">Record that the admin has confirmed cash/offline payment for this move. This will immediately activate the move.</div>
+    <div class="field-info" id="markPaidMoveInfo"></div>
+    <div class="field">
+      <label>Amount Received (₹)</label>
+      <input type="number" id="markPaidAmount" placeholder="e.g. 10000" class="form-input" min="1"/>
+    </div>
+    <div class="field">
+      <label>Payment Mode</label>
+      <select id="markPaidMode" class="form-input">
+        <option value="cash">Cash</option>
+        <option value="upi_offline">UPI (Offline)</option>
+        <option value="bank_transfer">Bank Transfer</option>
+        <option value="cheque">Cheque</option>
+        <option value="admin_override">Admin Override</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes (optional)</label><input type="text" id="markPaidNotes" placeholder="e.g. Cash received at office" class="form-input"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('markPaidModal')" style="flex:1">Cancel</button>
+      <button class="btn btn-primary" onclick="submitMarkPaid()" id="markPaidBtn" style="flex:2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+        Confirm Payment Received
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const BASE = window.location.origin;
+let token = localStorage.getItem('admin_token') || '';
+let currentUser = JSON.parse(localStorage.getItem('admin_user') || 'null');
+let agents = [];
+let statsCache = null;
+let pendingMoveId = null, pendingPaymentId = null;
+
+// ── BOOT ──────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  if (token && currentUser?.role === 'admin') {
+    showAdminView();
+  }
+});
+
+// ── API ───────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(BASE + path, opts);
+  if (r.status === 401) { doLogout(); return null; }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────
+async function doLogin() {
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('loginError');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="border-top-color:white"></div>';
+  err.style.display = 'none';
+  try {
+    const data = await api('POST', '/api/auth/login', {
+      email: document.getElementById('loginEmail').value,
+      password: document.getElementById('loginPassword').value,
+    });
+    if (!data) throw new Error('Login failed');
+    if (data.user?.role !== 'admin') throw new Error('Access denied — admin accounts only');
+    token = data.token; currentUser = data.user;
+    localStorage.setItem('admin_token', token);
+    localStorage.setItem('admin_user', JSON.stringify(currentUser));
+    showAdminView();
+  } catch(e) {
+    err.textContent = e.message; err.style.display = 'block';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<span>Sign In to Dashboard</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.querySelector('#view-login.active')) doLogin();
+});
+
+function doLogout() {
+  token = ''; currentUser = null;
+  localStorage.removeItem('admin_token');
+  localStorage.removeItem('admin_user');
+  document.getElementById('view-admin').classList.remove('active');
+  document.getElementById('view-login').classList.add('active');
+}
+
+function showAdminView() {
+  document.getElementById('view-login').classList.remove('active');
+  document.getElementById('view-admin').classList.add('active');
+  document.getElementById('headerName').textContent = currentUser?.name || 'Admin';
+  document.getElementById('headerAvatar').textContent = (currentUser?.name || 'A')[0].toUpperCase();
+  showPanel('dashboard');
+}
+
+// ── NAV ───────────────────────────────────────────────────────
+const panelLabels = { dashboard: 'Overview', moves: 'Moves', payments: 'Payments', agents: 'Agents', users: 'Users' };
+const panelLoaders = { dashboard: loadDashboard, moves: loadMoves, payments: loadPayments, agents: loadAgents, users: loadUsers };
+
+function showPanel(name) {
+  document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('nav-' + name)?.classList.add('active');
+  document.getElementById('panel-' + name)?.classList.add('active');
+  document.getElementById('headerCurrent').textContent = panelLabels[name] || name;
+  panelLoaders[name]?.();
+}
+
+function handleGlobalSearch() {
+  const q = document.getElementById('globalSearch').value.toLowerCase();
+  document.querySelectorAll('#movesTable tbody tr').forEach(tr => {
+    if (!tr.dataset.search) return;
+    tr.style.display = tr.dataset.search.includes(q) ? '' : 'none';
+  });
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+async function loadDashboard() {
+  const c = document.getElementById('dashboardContent');
+  c.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const d = await api('GET', '/api/admin/stats');
+    if (!d) return;
+    statsCache = d; agents = d.agents || [];
+    const pending = d.pending_verifications || 0;
+    const totalPendingActions = parseInt(d.moves.unpaid || 0) + pending;
+    updatePendingBadge(totalPendingActions);
+
+    c.innerHTML = `
+    ${pending > 0 ? `
+    <div class="alert alert-amber">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <div>
+        <strong>${pending} payment${pending>1?'s':''} awaiting approval.</strong>
+        Review and approve offline payments to activate those moves.
+      </div>
+      <button class="alert-btn" onclick="showPanel('payments')">Review Now →</button>
+    </div>` : ''}
+
+    <div class="kpi-grid">
+      ${[
+        { label: 'Active Moves', value: d.moves.active, icon: 'truck', iconBg: 'background:rgba(37,99,235,0.1)', iconColor: 'color:var(--accent)', trend: '+12%', trendStyle: 'background:var(--green-50);color:var(--green-700)' },
+        { label: 'Payment Pending', value: parseInt(d.moves.unpaid), icon: 'credit', iconBg: 'background:var(--amber-50)', iconColor: 'color:var(--amber-500)', trend: '—', trendStyle: 'background:var(--slate-100);color:var(--slate-500)' },
+        { label: 'Pending Verifications', value: pending, icon: 'alert', iconBg: 'background:var(--red-50)', iconColor: 'color:var(--red-500)', trend: pending > 0 ? '+' + pending : '0', trendStyle: pending > 0 ? 'background:var(--red-50);color:var(--red-700)' : 'background:var(--green-50);color:var(--green-700)' },
+        { label: 'Total Moves', value: d.moves.total, icon: 'check', iconBg: 'background:var(--green-50)', iconColor: 'color:var(--green-500)', trend: d.moves.completed + ' done', trendStyle: 'background:var(--green-50);color:var(--green-700)' },
+      ].map(k => `
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <span class="kpi-icon" style="${k.iconBg}">
+            <span style="${k.iconColor}">${kpiIcon(k.icon)}</span>
+          </span>
+          <span class="kpi-trend" style="${k.trendStyle}">${k.trend}</span>
+        </div>
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-value">${k.value}</div>
+      </div>`).join('')}
+    </div>
+
+    <div class="bottom-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left">
+            <h2>Move Volume</h2>
+            <p>Capacity over the last 7 days</p>
+          </div>
+        </div>
+        <div style="padding:20px 24px 8px">
+          <div class="chart-bars">
+            ${[40,70,50,90,60,85,65].map((v,i) => `
+            <div class="chart-bar${i===3?' highlight':''}" style="height:${v}%">
+              <div class="chart-bar-fill" style="height:100%"></div>
+            </div>`).join('')}
+          </div>
+          <div class="chart-labels">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="insights-card">
+        <div>
+          <h3>Quick Insights</h3>
+          <p>Move efficiency up <strong style="color:white">14%</strong> this month. Revenue collected: <strong style="color:white">₹${fmtAmt(d.revenue?.collected || 0)}</strong>.</p>
+          <div class="insights-list">
+            <div class="insight-item">
+              <div class="insight-dot" style="background:#22c55e"></div>
+              85% On-time delivery rate
+            </div>
+            <div class="insight-item">
+              <div class="insight-dot" style="background:var(--accent)"></div>
+              ${d.users.agents} active field agents
+            </div>
+            <div class="insight-item">
+              <div class="insight-dot" style="background:#f59e0b"></div>
+              ${d.users.customers} registered customers
+            </div>
+          </div>
+        </div>
+        <button class="insights-btn" onclick="showPanel('moves')">View All Moves →</button>
+      </div>
+    </div>`;
+  } catch(e) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+function kpiIcon(type) {
+  const icons = {
+    truck: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m4 0h1.5a.5.5 0 0 1 .4.2L21 10l.9 2.7a1 1 0 0 1 .1.3V17a2 2 0 0 1-2 2h-.5"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
+    credit: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="22" height="16" x="1" y="4" rx="2"/><path d="M1 10h22"/></svg>',
+    alert: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    check: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>',
+  };
+  return icons[type] || '';
+}
+
+// ── MOVES ─────────────────────────────────────────────────────
+async function loadMoves() {
+  const c = document.getElementById('movesContent');
+  c.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const moves = await api('GET', '/api/admin/moves');
+    if (!moves) return;
+    if (!agents.length && statsCache?.agents) agents = statsCache.agents;
+
+    c.innerHTML = `
+    <div class="toolbar">
+      <div style="font-size:13px;color:var(--slate-500)">${moves.length} moves total</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="toolbar-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search by customer, move ID..." oninput="filterMoves(this.value)" id="moveSearch"/>
+        </div>
+        <button class="btn btn-outline">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="9" y1="12" y2="12"/><line x1="17" x2="7" y1="18" y2="18"/></svg>
+          Filter
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          New Move
+        </button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table id="movesTable">
+          <thead>
+            <tr>
+              <th>Move ID</th><th>Customer</th><th>Status</th><th>Payment</th><th>Agent</th><th>Invoice</th><th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${moves.map(m => {
+              const si = moveStatusBadge(m.status);
+              const pi = paymentBadge(m.payment_status);
+              const initials = (m.customer_name || 'U').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+              return `
+              <tr data-search="${(m.title+m.customer_name+m.customer_email+m.status).toLowerCase()}">
+                <td><span class="move-id">#${m.id.slice(0,8).toUpperCase()}</span>
+                  <div style="font-size:11px;color:var(--slate-400);margin-top:2px">${m.title||'Untitled'}</div>
+                </td>
+                <td>
+                  <div class="customer-cell">
+                    <div class="avatar-initials">${initials}</div>
+                    <div>
+                      <div style="font-weight:500;color:var(--slate-700)">${m.customer_name}</div>
+                      <div style="font-size:11px;color:var(--slate-400)">${m.customer_email}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <select class="select-inline" onchange="updateMoveStatus('${m.id}',this.value)">
+                    ${['payment_pending','active','in_progress','completed','closed'].map(s=>`<option value="${s}"${m.status===s?' selected':''}>${s.replace(/_/g,' ')}</option>`).join('')}
+                  </select>
+                </td>
+                <td><span class="badge ${pi.cls}">${pi.label}</span></td>
+                <td>
+                  <div style="font-size:13px;color:${m.agent_name?'var(--slate-700)':'var(--slate-400)'}">${m.agent_name||'Unassigned'}</div>
+                  <button class="btn btn-sm btn-outline" onclick="openAssignAgent('${m.id}','${m.title||'Move'}','${m.agent_id||''}')" style="margin-top:4px;padding:3px 8px;font-size:11px">Assign →</button>
+                </td>
+                <td>
+                  <div style="font-weight:700;color:var(--primary);margin-bottom:4px">${m.invoice_total ? '₹'+fmtAmt(m.invoice_total) : '—'}</div>
+                  ${m.payment_status==='pending' ? `<button class="btn btn-sm btn-success" onclick="openMarkPaid('${m.id}','${m.customer_name.replace(/'/g,"\\'")}',${m.invoice_total||0})" style="padding:3px 8px;font-size:11px">
+                    <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' width='11' height='11'><path d='M20 6 9 17l-5-5'/></svg>
+                    Mark Paid
+                  </button>` : ''}
+                </td>
+                <td>
+                  <div class="btn-group" style="justify-content:flex-end">
+                    <button class="icon-btn" title="View">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Edit">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span>Showing ${moves.length} of ${moves.length} moves</span>
+        <div class="pagination">
+          <button class="page-btn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  } catch(e) {
+    document.getElementById('movesContent').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+function filterMoves(q) {
+  const lq = q.toLowerCase();
+  document.querySelectorAll('#movesTable tbody tr').forEach(tr => {
+    tr.style.display = (tr.dataset.search || '').includes(lq) ? '' : 'none';
+  });
+}
+
+async function updateMoveStatus(moveId, status) {
+  try {
+    await api('PUT', `/api/admin/moves/${moveId}/status`, { status });
+    toast('Status updated', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── ASSIGN AGENT ──────────────────────────────────────────────
+function openAssignAgent(moveId, title, currentAgentId) {
+  pendingMoveId = moveId;
+  document.getElementById('assignMoveInfo').innerHTML = `<strong>${title}</strong><span>Select an agent from your team to handle this move</span>`;
+  const sel = document.getElementById('agentSelect');
+  const ag = agents.length ? agents : (statsCache?.agents || []);
+  sel.innerHTML = '<option value="">— Unassigned —</option>' +
+    ag.map(a => `<option value="${a.id}"${a.id===currentAgentId?' selected':''}>${a.name}</option>`).join('');
+  openModal('assignModal');
+}
+
+async function submitAssign() {
+  const btn = document.getElementById('assignBtn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div> Saving…';
+  try {
+    await api('PUT', `/api/admin/moves/${pendingMoveId}/assign-agent`, {
+      agent_id: document.getElementById('agentSelect').value || null
+    });
+    closeModal('assignModal'); toast('Agent assigned ✓', 'success'); loadMoves();
+  } catch(e) { toast(e.message, 'error'); }
+  btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Assign Agent';
+}
+
+// ── PAYMENTS ──────────────────────────────────────────────────
+async function loadPayments() {
+  const c = document.getElementById('paymentsContent');
+  c.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const data = await api('GET', '/api/admin/payments/pending');
+    if (!data) return;
+    const { moves_unpaid = [], payments_pending = [] } = data;
+    const total = moves_unpaid.length + payments_pending.length;
+    updatePendingBadge(total);
+
+    if (!total) {
+      c.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><p>All payments received!</p><span>No moves waiting for payment right now.</span></div>`;
+      return;
+    }
+
+    let html = '';
+
+    if (moves_unpaid.length) {
+      html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--slate-500);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <span class="badge badge-red">${moves_unpaid.length}</span> Moves awaiting payment
+      </div>`;
+      html += moves_unpaid.map(m => `
+      <div class="payment-card">
+        <div class="payment-top">
+          <div class="payment-customer">
+            <strong>${m.customer_name}</strong>
+            <span>${m.customer_email}</span>
+          </div>
+          <span class="badge badge-red">Unpaid</span>
+        </div>
+        <div class="payment-amount">${m.invoice_total ? '₹'+fmtAmt(m.invoice_total) : '<span style="font-size:16px;color:var(--slate-400)">No invoice set</span>'}</div>
+        <div class="payment-meta">📦 ${m.title||'Untitled'}${m.from_address?' · '+m.from_address:''}${m.to_address?' → '+m.to_address:''}</div>
+        <div class="payment-bottom">
+          <div class="payment-agent">Agent: ${m.agent_name||'Unassigned'} · ${fmtDate(m.created_at)}</div>
+          <button class="btn btn-primary btn-sm" onclick="openMarkPaid('${m.id}','${m.customer_name.replace(/'/g,"\'")}',${m.invoice_total||0})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><path d="M20 6 9 17l-5-5"/></svg>
+            Mark Payment Received
+          </button>
+        </div>
+      </div>`).join('');
+    }
+
+    if (payments_pending.length) {
+      html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--slate-500);margin:${moves_unpaid.length?'24px':0} 0 12px;display:flex;align-items:center;gap:8px">
+        <span class="badge badge-amber">${payments_pending.length}</span> Agent-recorded payments awaiting approval
+      </div>`;
+      html += payments_pending.map(p => `
+      <div class="payment-card">
+        <div class="payment-top">
+          <div class="payment-customer">
+            <strong>${p.customer_name}</strong>
+            <span>${p.customer_email}</span>
+          </div>
+          <span class="badge badge-amber">${(p.payment_mode||'cash').replace(/_/g,' ')}</span>
+        </div>
+        <div class="payment-amount">₹${fmtAmt(p.amount)}</div>
+        <div class="payment-meta">📦 ${p.move_title||'—'}${p.from_address?' · '+p.from_address:''}${p.to_address?' → '+p.to_address:''}</div>
+        <div class="payment-bottom">
+          <div class="payment-agent">Recorded by ${p.agent_name||'agent'} · ${fmtDate(p.created_at)}</div>
+          <div class="btn-group">
+            <button class="btn btn-danger btn-sm" onclick="openVerify('${p.id}','${p.customer_name}',${p.amount})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              Reject
+            </button>
+            <button class="btn btn-success btn-sm" onclick="openVerify('${p.id}','${p.customer_name}',${p.amount},'approve')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><path d="M20 6 9 17l-5-5"/></svg>
+              Approve
+            </button>
+          </div>
+        </div>
+      </div>`).join('');
+    }
+
+    c.innerHTML = html;
+  } catch(e) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+let pendingMarkPaidMoveId = null;
+function openMarkPaid(moveId, customerName, invoiceTotal) {
+  pendingMarkPaidMoveId = moveId;
+  document.getElementById('markPaidMoveInfo').innerHTML =
+    `<strong>${customerName}</strong>
+     <div class="field-amount">${invoiceTotal ? '₹'+fmtAmt(invoiceTotal) : 'No invoice set'}</div>
+     <span>Confirming will set payment status to Paid and activate this move</span>`;
+  document.getElementById('markPaidAmount').value = invoiceTotal || '';
+  document.getElementById('markPaidNotes').value = '';
+  openModal('markPaidModal');
+}
+
+async function submitMarkPaid() {
+  const btn = document.getElementById('markPaidBtn');
+  const amount = parseFloat(document.getElementById('markPaidAmount').value);
+  if (!amount || amount <= 0) { toast('Enter a valid amount', 'error'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-top-color:white;display:inline-block"></div> Saving…';
+  try {
+    await api('POST', `/api/admin/moves/${pendingMarkPaidMoveId}/mark-paid`, {
+      amount,
+      payment_mode: document.getElementById('markPaidMode').value,
+      notes: document.getElementById('markPaidNotes').value || 'Marked paid by admin',
+    });
+    closeModal('markPaidModal');
+    toast('✅ Payment confirmed — move activated!', 'success');
+    loadPayments(); loadMoves(); loadDashboard();
+  } catch(e) { toast(e.message, 'error'); }
+  btn.disabled = false;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Confirm Payment Received';
+}
+
+function openVerify(paymentId, customer, amount) {
+  pendingPaymentId = paymentId;
+  document.getElementById('verifyPaymentInfo').innerHTML = `
+    <div class="field-info">
+      <strong>${customer}</strong>
+      <div class="field-amount">₹${fmtAmt(amount)}</div>
+      <span>Cash / offline payment recorded by agent</span>
+    </div>`;
+  document.getElementById('verifyNotes').value = '';
+  openModal('verifyModal');
+}
+
+async function submitVerify(action) {
+  const btn = action === 'approve' ? document.getElementById('approveBtn') : document.getElementById('rejectBtn');
+  btn.disabled = true;
+  try {
+    await api('POST', `/api/admin/payments/${pendingPaymentId}/verify`, {
+      action, notes: document.getElementById('verifyNotes').value
+    });
+    closeModal('verifyModal');
+    toast(action === 'approve' ? '✅ Payment approved — move activated!' : 'Payment rejected', action === 'approve' ? 'success' : '');
+    loadPayments(); loadDashboard();
+  } catch(e) { toast(e.message, 'error'); }
+  btn.disabled = false;
+}
+
+// ── AGENTS ────────────────────────────────────────────────────
+async function loadAgents() {
+  const c = document.getElementById('agentsContent');
+  c.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    if (!statsCache) statsCache = await api('GET', '/api/admin/stats');
+    agents = statsCache?.agents || [];
+    c.innerHTML = `
+    <div class="toolbar">
+      <div style="font-size:13px;color:var(--slate-500)">${agents.length} agents</div>
+      <button class="btn btn-primary" onclick="openCreateAgent()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+        Add Agent
+      </button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${agents.length ? agents.map(a => `
+            <tr>
+              <td>
+                <div class="customer-cell">
+                  <div class="avatar-initials">${a.name.split(' ').map(n=>n[0]).join('').toUpperCase()}</div>
+                  <strong>${a.name}</strong>
+                </div>
+              </td>
+              <td style="color:var(--slate-500)">${a.email}</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>
+                <div class="btn-group">
+                  <button class="btn btn-outline btn-sm">View Moves</button>
+                </div>
+              </td>
+            </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--slate-400)">No agents yet. Add your first agent.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  } catch(e) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+function openCreateAgent() {
+  ['agentName','agentEmail','agentPassword','agentPhone'].forEach(id => document.getElementById(id).value='');
+  openModal('createAgentModal');
+}
+
+async function submitCreateAgent() {
+  const btn = document.getElementById('createAgentBtn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const data = await api('POST', '/api/admin/users/agent', {
+      name: document.getElementById('agentName').value,
+      email: document.getElementById('agentEmail').value,
+      password: document.getElementById('agentPassword').value,
+      phone: document.getElementById('agentPhone').value,
+    });
+    closeModal('createAgentModal');
+    toast(`Agent "${data.name}" created ✓`, 'success');
+    statsCache = null; // refresh
+    loadAgents();
+  } catch(e) { toast(e.message, 'error'); }
+  btn.disabled = false;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg> Create Agent';
+}
+
+// ── USERS ─────────────────────────────────────────────────────
+async function loadUsers() {
+  const c = document.getElementById('usersContent');
+  c.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const users = await api('GET', '/api/admin/users');
+    if (!users) return;
+    c.innerHTML = `
+    <div class="toolbar">
+      <div style="font-size:13px;color:var(--slate-500)">${users.length} users</div>
+      <button class="btn btn-primary" onclick="openCreateAgent()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        Add Agent
+      </button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>User</th><th>Phone</th><th>Role</th><th>Moves</th><th>Joined</th><th>Change Role</th></tr></thead>
+          <tbody>
+            ${users.map(u => {
+              const ri = roleBadge(u.role);
+              return `
+              <tr>
+                <td>
+                  <div class="customer-cell">
+                    <div class="avatar-initials">${u.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}</div>
+                    <div>
+                      <div style="font-weight:600;color:var(--primary)">${u.name}</div>
+                      <div style="font-size:12px;color:var(--slate-400)">${u.email}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:13px;color:var(--slate-500)">${u.phone||'—'}</td>
+                <td><span class="badge ${ri.cls}">${u.role}</span></td>
+                <td style="font-size:13px;text-align:center">${u.move_count}</td>
+                <td style="font-size:12px;color:var(--slate-500)">${fmtDate(u.created_at)}</td>
+                <td>
+                  <select class="select-inline" onchange="changeRole('${u.id}',this.value)">
+                    <option value="customer"${u.role==='customer'?' selected':''}>Customer</option>
+                    <option value="agent"${u.role==='agent'?' selected':''}>Agent</option>
+                    <option value="admin"${u.role==='admin'?' selected':''}>Admin</option>
+                  </select>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  } catch(e) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+async function changeRole(userId, role) {
+  try {
+    await api('PUT', `/api/admin/users/${userId}/role`, { role });
+    toast(`Role updated to ${role}`, 'success');
+    statsCache = null;
+    setTimeout(loadUsers, 200);
+  } catch(e) { toast(e.message, 'error'); loadUsers(); }
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+let toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3000);
+}
+
+function updatePendingBadge(count) {
+  const badge = document.getElementById('pendingBadge');
+  const dot = document.getElementById('notifDot');
+  if (count > 0) {
+    badge.textContent = count; badge.style.display = '';
+    dot.style.display = '';
+  } else {
+    badge.style.display = 'none';
+    dot.style.display = 'none';
+  }
+}
+
+function fmtAmt(n) {
+  return (parseFloat(n)||0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+function moveStatusBadge(s) {
+  return {
+    payment_pending: { cls: 'badge-amber', label: 'Payment Pending' },
+    active: { cls: 'badge-green', label: 'Active' },
+    in_progress: { cls: 'badge-blue', label: 'In Progress' },
+    completed: { cls: 'badge-emerald', label: 'Completed' },
+    closed: { cls: 'badge-slate', label: 'Closed' },
+  }[s] || { cls: 'badge-slate', label: s||'—' };
+}
+
+function paymentBadge(s) {
+  return {
+    pending: { cls: 'badge-red', label: 'Pending' },
+    partial: { cls: 'badge-amber', label: 'Partial' },
+    under_verification: { cls: 'badge-blue', label: 'Verifying' },
+    verified: { cls: 'badge-green', label: 'Paid' },
+    failed: { cls: 'badge-red', label: 'Failed' },
+  }[s] || { cls: 'badge-slate', label: s||'—' };
+}
+
+function roleBadge(r) {
+  return { admin: { cls: 'badge-blue' }, agent: { cls: 'badge-green' }, customer: { cls: 'badge-slate' } }[r] || { cls: 'badge-slate' };
+}
+</script>
+</body>
+</html>
