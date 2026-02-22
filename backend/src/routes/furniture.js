@@ -7,10 +7,10 @@ const upload = require('../middleware/upload');
 
 router.use(auth);
 
-router.get('/move/:moveId', furnitureController.getByMove);                           // view always
-router.post('/move/:moveId', paymentGate, furnitureController.create);                // GATED
-router.post('/:id/photos', paymentGate, upload.array('photos', 10), furnitureController.addPhotos); // GATED
-router.put('/:id/condition-after', paymentGate, furnitureController.updateConditionAfter); // GATED
-router.delete('/:id', paymentGate, furnitureController.remove);                       // GATED
+router.get('/move/:moveId', furnitureController.getByMove);
+router.post('/move/:moveId', paymentGate, furnitureController.create);
+router.post('/:id/photos', paymentGate, furnitureController.addPhotoBase64);
+router.put('/:id/condition-after', paymentGate, furnitureController.updateConditionAfter);
+router.delete('/:id', paymentGate, furnitureController.remove);
 
 module.exports = router;

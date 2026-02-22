@@ -9,6 +9,7 @@ router.use(auth);
 router.get('/move/:moveId', boxesController.getByMove);                        // view allowed always
 router.post('/move/:moveId', paymentGate, boxesController.create);             // GATED — create box
 router.post('/scan/:qrCode', paymentGate, boxesController.scan);               // GATED — scan
+router.post('/bulk-scan', paymentGate, boxesController.bulkScan);              // GATED — bulk update
 router.get('/qr/:qrCode', boxesController.getByQR);                            // lookup always allowed
 router.put('/:id/status', paymentGate, boxesController.updateStatus);          // GATED
 router.delete('/:id', paymentGate, boxesController.remove);                    // GATED

@@ -12,6 +12,7 @@ router.get('/moves', ctrl.getMoves);
 router.put('/moves/:id/assign-agent', ctrl.assignAgent);
 router.put('/moves/:id/status', ctrl.updateMoveStatus);
 router.get('/payments/pending', ctrl.getPendingPayments);
+router.get('/payments', ctrl.getPayments);
 router.post('/moves/:id/mark-paid', ctrl.markMovePaid);
 router.post('/payments/:id/verify', ctrl.verifyPayment);
 router.get('/users', ctrl.getUsers);

@@ -13,6 +13,7 @@ router.post('/', movesController.create);
 router.get('/:id', movesController.getOne);
 router.put('/:id', movesController.update);
 router.put('/:id/assign-agent', roleGuard(['admin']), movesController.assignAgent);
+router.post('/:id/complete', roleGuard(['agent','admin']), movesController.completeMove);
 router.delete('/:id', movesController.remove);
 
 module.exports = router;

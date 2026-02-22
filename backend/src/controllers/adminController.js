@@ -93,38 +93,41 @@ exports.updateMoveStatus = async (req, res) => {
 // ── PENDING PAYMENT VERIFICATIONS ───────────────────────────
 exports.getPendingPayments = async (req, res) => {
   try {
-    const [unpaidMoves, agentPayments] = await Promise.all([
-      db.query(`
-        SELECT m.id, m.title, m.from_address, m.to_address, m.status, m.payment_status,
-          m.created_at, mp.total as invoice_total,
-          u.name as customer_name, u.email as customer_email, u.phone as customer_phone,
-          a.name as agent_name
-        FROM moves m
-        JOIN users u ON u.id = m.user_id
-        LEFT JOIN users a ON a.id = m.agent_id
-        LEFT JOIN move_pricing mp ON mp.move_id = m.id
-        WHERE m.payment_status = 'pending'
-        ORDER BY m.created_at ASC
-      `),
-      db.query(`
-        SELECT p.*,
-          m.title as move_title, m.from_address, m.to_address,
-          u.name as customer_name, u.email as customer_email,
-          a.name as agent_name
-        FROM payments p
-        JOIN moves m ON m.id = p.move_id
-        JOIN users u ON u.id = p.user_id
-        LEFT JOIN users a ON a.id = p.recorded_by
-        WHERE p.status = 'pending'
-        ORDER BY p.created_at ASC
-      `)
-    ]);
-    res.json({
-      moves_unpaid: unpaidMoves.rows,
-      payments_pending: agentPayments.rows,
-    });
+    const result = await db.query(`
+      SELECT p.*,
+        m.title as move_title, m.from_address, m.to_address,
+        u.name as customer_name, u.email as customer_email,
+        rb.name as recorded_by_name
+      FROM payments p
+      JOIN moves m ON m.id = p.move_id
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN users rb ON rb.id = p.recorded_by
+      WHERE p.status = 'pending'
+      ORDER BY p.created_at ASC
+    `);
+    res.json(result.rows);
   } catch(err) {
     res.status(500).json({ error: 'Failed to get pending payments' });
+  }
+};
+
+// ── ALL PAYMENTS ─────────────────────────────────────────────
+exports.getPayments = async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT p.*,
+        m.title as move_title, m.from_address, m.to_address,
+        u.name as customer_name, u.email as customer_email,
+        rb.name as recorded_by_name
+      FROM payments p
+      JOIN moves m ON m.id = p.move_id
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN users rb ON rb.id = p.recorded_by
+      ORDER BY p.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch(err) {
+    res.status(500).json({ error: 'Failed to get payments' });
   }
 };
 
