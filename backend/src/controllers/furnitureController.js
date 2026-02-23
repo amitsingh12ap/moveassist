@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+const activities = require('./activitiesController');
 
 exports.getByMove = async (req, res) => {
   try {
@@ -63,6 +64,23 @@ exports.updateConditionAfter = async (req, res) => {
         'INSERT INTO furniture_photos (furniture_id, photo_url, photo_type) VALUES ($1,$2,$3)',
         [item.id, photo_url, 'after']
       );
+    }
+    // Log activity
+    await activities.create(item.move_id, req.user.id, req.user.role, 'furniture_delivered',
+      `"${item.name}" delivered — condition: ${condition_after}`,
+      damage_notes || '', { furniture_id: item.id, condition_after, condition_before: item.condition_before }
+    );
+    // Notify client if condition changed
+    if (item.condition_before && condition_after && condition_after !== item.condition_before) {
+      const move = await db.query('SELECT user_id FROM moves WHERE id=$1', [item.move_id]);
+      if (move.rows[0]) {
+        await db.query(
+          `INSERT INTO notifications (user_id,move_id,type,title,body) VALUES ($1,$2,$3,$4,$5)`,
+          [move.rows[0].user_id, item.move_id, 'condition_change',
+           `Condition change: ${item.name}`,
+           `${item.name} was ${item.condition_before} before move, now ${condition_after}. Check photos.`]
+        );
+      }
     }
     res.json(item);
   } catch (err) {

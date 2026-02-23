@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const auth = require('../middleware/auth');
+const c = require('../controllers/notificationsController');
+router.use(auth);
+router.get('/', c.getForUser);
+router.get('/unread-count', c.getUnreadCount);
+router.post('/mark-read', c.markRead);
+router.post('/mark-all-read', c.markAllRead);
+module.exports = router;

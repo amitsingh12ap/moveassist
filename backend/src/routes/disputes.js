@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const auth = require('../middleware/auth');
+const roleGuard = require('../middleware/roleGuard');
+const c = require('../controllers/disputesController');
+router.use(auth);
+router.post('/move/:moveId', c.create);
+router.get('/move/:moveId', c.getByMove);
+router.put('/:id/resolve', roleGuard(['admin']), c.resolve);
+module.exports = router;

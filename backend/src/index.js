@@ -11,6 +11,13 @@ const furnitureRoutes = require('./routes/furniture');
 const reportRoutes = require('./routes/reports');
 const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
+const featureFlagsRoutes = require('./routes/featureFlags');
+const activitiesRoutes = require('./routes/activities');
+const notificationsRoutes = require('./routes/notifications');
+const disputesRoutes = require('./routes/disputes');
+const ratingsRoutes = require('./routes/ratings');
+const documentsRoutes = require('./routes/documents');
+const pricingRoutes = require('./routes/pricing');
 
 const app = express();
 
@@ -29,6 +36,13 @@ app.use('/api/furniture', furnitureRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/feature-flags', featureFlagsRoutes);
+app.use('/api/activities', activitiesRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/disputes', disputesRoutes);
+app.use('/api/ratings', ratingsRoutes);
+app.use('/api/documents', documentsRoutes);
+app.use('/api/pricing', pricingRoutes);
 
 // Serve PWA static files (manifest, sw, icons, index)
 app.use(express.static(path.join(__dirname, '../public')));

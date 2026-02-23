@@ -1,4 +1,5 @@
 const db = require('../../config/db');
+const activities = require('./activitiesController');
 
 // Customer: get own moves
 exports.getAll = async (req, res) => {
@@ -62,14 +63,34 @@ exports.getAllAdmin = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  const { title, from_address, to_address, move_date } = req.body;
+  const { title, from_address, to_address, move_date,
+          from_city, to_city, from_lat, from_lng, to_lat, to_lng,
+          floor_from, floor_to, has_lift_from, has_lift_to, bhk_type } = req.body;
   try {
+    // Intra-city check if flag enabled
+    const flag = await db.query("SELECT enabled FROM feature_flags WHERE key='intra_city_only'");
+    if (flag.rows[0]?.enabled && from_city && to_city) {
+      const normalize = s => s.toLowerCase().trim().replace(/\s+/g,' ');
+      if (normalize(from_city) !== normalize(to_city)) {
+        return res.status(400).json({
+          error: 'INTRA_CITY_ONLY',
+          message: `We currently only support moves within the same city. You selected ${from_city} → ${to_city}.`
+        });
+      }
+    }
     const result = await db.query(
-      `INSERT INTO moves (user_id, title, from_address, to_address, move_date, status, payment_status)
-       VALUES ($1,$2,$3,$4,$5,'payment_pending','pending') RETURNING *`,
-      [req.user.id, title, from_address, to_address, move_date]
+      `INSERT INTO moves (user_id,title,from_address,to_address,move_date,status,payment_status,
+        from_city,to_city,from_lat,from_lng,to_lat,to_lng,floor_from,floor_to,has_lift_from,has_lift_to,bhk_type)
+       VALUES ($1,$2,$3,$4,$5,'payment_pending','pending',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+      [req.user.id,title,from_address,to_address,move_date,
+       from_city||null,to_city||null,from_lat||null,from_lng||null,to_lat||null,to_lng||null,
+       floor_from||0,floor_to||0,has_lift_from||false,has_lift_to||false,bhk_type||null]
     );
-    res.status(201).json(result.rows[0]);
+    const move = result.rows[0];
+    await activities.create(move.id, req.user.id, 'customer', 'move_created',
+      'Move request created', `From ${from_address} to ${to_address}`, {}
+    );
+    res.status(201).json(move);
   } catch(err) {
     res.status(500).json({ error: 'Failed to create move' });
   }
@@ -77,12 +98,19 @@ exports.create = async (req, res) => {
 
 exports.getOne = async (req, res) => {
   try {
-    // Agents/admins can also view any move
     let result;
+    const q = `
+      SELECT m.*,
+        a.name  as agent_name,
+        a.phone as agent_phone,
+        a.email as agent_email
+      FROM moves m
+      LEFT JOIN users a ON a.id = m.agent_id
+      WHERE m.id = $1`;
     if (req.user.role === 'agent' || req.user.role === 'admin') {
-      result = await db.query('SELECT * FROM moves WHERE id=$1', [req.params.id]);
+      result = await db.query(q, [req.params.id]);
     } else {
-      result = await db.query('SELECT * FROM moves WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+      result = await db.query(q + ' AND m.user_id = $2', [req.params.id, req.user.id]);
     }
     if (!result.rows[0]) return res.status(404).json({ error: 'Move not found' });
     res.json(result.rows[0]);
@@ -177,6 +205,19 @@ exports.completeMove = async (req, res) => {
       `UPDATE moves SET status='completed', updated_at=NOW() WHERE id=$1 AND (status='in_progress' OR status='active') RETURNING *`,
       [id]
     );
+    await activities.create(id, req.user.id, req.user.role, 'move_completed',
+      'Move completed successfully', 'All items delivered and verified.', {}
+    );
+    // Notify client
+    const move = await db.query('SELECT user_id, title FROM moves WHERE id=$1', [id]);
+    if (move.rows[0]) {
+      await db.query(
+        `INSERT INTO notifications (user_id,move_id,type,title,body) VALUES ($1,$2,$3,$4,$5)`,
+        [move.rows[0].user_id, id, 'move_completed',
+         '🎉 Your move is complete!',
+         `"${move.rows[0].title}" has been completed. Please rate your experience.`]
+      );
+    }
     res.json({ message: 'Move completed successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to complete move' });
