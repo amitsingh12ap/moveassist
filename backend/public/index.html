@@ -3780,7 +3780,7 @@ async function renderAdminMoves() {
   try {
     const [moves, users] = await Promise.all([api('GET','/api/admin/moves'), api('GET','/api/admin/users')]);
     adminData.moves = moves;
-    adminData.agents = users.filter(u => u.role === 'agent' || u.role === 'admin');
+    adminData.agents = users.filter(u => u.role === 'agent');
     c.innerHTML = `
       <div style="margin-bottom:12px;display:flex;gap:8px">
         <input type="text" id="moveSearchInput" placeholder="Search moves…" oninput="filterAdminMoves()"
@@ -3841,8 +3841,11 @@ async function doAssignAgent(moveId) {
   const agentId = document.getElementById('agsel-'+moveId)?.value;
   if (!agentId) { toast('Select an agent first', 'error'); return; }
   try {
-    const data = await api('PATCH', `/api/admin/moves/${moveId}/assign-agent`, { agent_id: agentId });
-    toast(`Agent "${data.agent.name}" assigned ✓`, 'success');
+    const data = await api('PUT', `/api/admin/moves/${moveId}/assign-agent`, { agent_id: agentId });
+    const agentName = data?.agent?.name || data?.agent_name || 'Agent';
+    toast(`Agent "${agentName}" assigned ✓`, 'success');
+    showScreen('admin');
+    setTopbar('admin');
     renderAdminMoves();
   } catch(e) { toast(e.message, 'error'); }
 }
@@ -3852,6 +3855,8 @@ async function doForceActivate(moveId) {
   try {
     await api('POST', `/api/admin/moves/${moveId}/force-activate`);
     toast('Move force-activated ✓', 'success');
+    showScreen('admin');
+    setTopbar('admin');
     renderAdminMoves();
   } catch(e) { toast(e.message, 'error'); }
 }

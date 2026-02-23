@@ -10,6 +10,7 @@ router.use(auth, roleGuard(['admin']));
 router.get('/stats', ctrl.getStats);
 router.get('/moves', ctrl.getMoves);
 router.put('/moves/:id/assign-agent', ctrl.assignAgent);
+router.post('/moves/:id/force-activate', ctrl.forceActivate);
 router.put('/moves/:id/status', ctrl.updateMoveStatus);
 router.get('/payments/pending', ctrl.getPendingPayments);
 router.get('/payments', ctrl.getPayments);

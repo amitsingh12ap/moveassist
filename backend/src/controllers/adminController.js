@@ -47,7 +47,8 @@ exports.getMoves = async (req, res) => {
         u.name as customer_name, u.email as customer_email, u.phone as customer_phone,
         a.name as agent_name,
         COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id), 0) as total_boxes,
-        mp.total as invoice_total
+        mp.total as invoice_total,
+        COALESCE((SELECT SUM(amount) FROM payments WHERE move_id=m.id AND status='verified'), 0) as amount_collected
       FROM moves m
       JOIN users u ON u.id = m.user_id
       LEFT JOIN users a ON a.id = m.agent_id
@@ -68,9 +69,50 @@ exports.assignAgent = async (req, res) => {
       `UPDATE moves SET agent_id=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
       [agent_id || null, req.params.id]
     );
-    res.json(result.rows[0]);
+    const move = result.rows[0];
+    let agent = null;
+    if (agent_id) {
+      const agentResult = await db.query('SELECT id, name, email, phone FROM users WHERE id=$1', [agent_id]);
+      agent = agentResult.rows[0] || null;
+      // Notify agent
+      await db.query(
+        `INSERT INTO notifications (user_id, type, title, body, move_id)
+         VALUES ($1, 'move_assigned', 'New Move Assigned', $2, $3)`,
+        [agent_id, `You have been assigned to move: ${move.title || 'Untitled'}`, move.id]
+      ).catch(() => {});
+      // Notify customer
+      await db.query(
+        `INSERT INTO notifications (user_id, type, title, body, move_id)
+         VALUES ($1, 'agent_assigned', 'Agent Assigned to Your Move', $2, $3)`,
+        [move.user_id, `${agent.name} has been assigned to handle your move.`, move.id]
+      ).catch(() => {});
+    }
+    res.json({ ...move, agent });
   } catch(err) {
     res.status(500).json({ error: 'Failed to assign agent' });
+  }
+};
+
+// ── FORCE ACTIVATE ───────────────────────────────────────────
+exports.forceActivate = async (req, res) => {
+  try {
+    const result = await db.query(
+      `UPDATE moves SET status='active', payment_status='waived', updated_at=NOW()
+       WHERE id=$1 AND status IN ('payment_pending','payment_under_verification','created')
+       RETURNING *`,
+      [req.params.id]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: 'Move not found or already active' });
+    const move = result.rows[0];
+    // Notify customer
+    await db.query(
+      `INSERT INTO notifications (user_id, type, title, body, move_id)
+       VALUES ($1, 'move_created', 'Move Activated', 'Your move has been activated by admin.', $2)`,
+      [move.user_id, move.id]
+    ).catch(() => {});
+    res.json(move);
+  } catch(err) {
+    res.status(500).json({ error: 'Failed to force-activate move' });
   }
 };
 
