@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
 const db = require('../../config/db');
+const activities = require('./activitiesController');
 
 const BOX_STATUSES = ['created', 'packed', 'loaded', 'in_transit', 'delivered'];
 
@@ -65,6 +66,12 @@ exports.scan = async (req, res) => {
     await db.query(
       'UPDATE moves SET delivered_boxes = (SELECT COUNT(*) FROM boxes WHERE move_id=$1 AND status=\'delivered\') WHERE id=$1',
       [box.move_id]
+    );
+    // Log activity
+    const statusLabels = { delivered:'delivered', loaded:'loaded onto truck', packed:'packed', in_transit:'in transit' };
+    await activities.create(box.move_id, req.user.id, req.user.role, 'box_scanned',
+      `Box "${box.label||box.qr_code}" ${statusLabels[status]||status}`,
+      location ? `Location: ${location}` : '', { box_id: box.id, status, photo_url }
     );
     res.json({ message: 'Scan logged', box_id: box.id, new_status: status });
   } catch (err) {

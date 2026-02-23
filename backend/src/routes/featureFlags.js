@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const auth = require('../middleware/auth');
+const roleGuard = require('../middleware/roleGuard');
+const c = require('../controllers/featureFlagsController');
+router.use(auth);
+router.get('/', c.getAll);
+router.get('/:key', c.getOne);
+router.put('/:key', roleGuard(['admin']), c.update);
+module.exports = router;
