@@ -44,7 +44,7 @@ exports.create = async (req, res) => {
 
 exports.scan = async (req, res) => {
   const { qrCode } = req.params;
-  const { status, location, notes } = req.body;
+  const { status, location, notes, photo_url } = req.body;
 
   if (!BOX_STATUSES.includes(status)) {
     return res.status(400).json({ error: 'Invalid status', valid: BOX_STATUSES });
@@ -56,18 +56,48 @@ exports.scan = async (req, res) => {
 
     const box = boxResult.rows[0];
 
-    // Log the scan
     await db.query(
-      'INSERT INTO box_scans (box_id, status, scanned_by, location, notes) VALUES ($1,$2,$3,$4,$5)',
-      [box.id, status, req.user.id, location, notes]
+      'INSERT INTO box_scans (box_id, status, scanned_by, location, notes, photo_url) VALUES ($1,$2,$3,$4,$5,$6)',
+      [box.id, status, req.user.id, location, notes, photo_url || null]
     );
 
-    // Update box status
     await db.query('UPDATE boxes SET status = $1, updated_at = NOW() WHERE id = $2', [status, box.id]);
-
+    await db.query(
+      'UPDATE moves SET delivered_boxes = (SELECT COUNT(*) FROM boxes WHERE move_id=$1 AND status=\'delivered\') WHERE id=$1',
+      [box.move_id]
+    );
     res.json({ message: 'Scan logged', box_id: box.id, new_status: status });
   } catch (err) {
     res.status(500).json({ error: 'Failed to log scan' });
+  }
+};
+
+// ── BULK STATUS UPDATE ────────────────────────────────────────
+exports.bulkScan = async (req, res) => {
+  const { box_ids, status, location, notes, photo_url } = req.body;
+  if (!box_ids?.length) return res.status(400).json({ error: 'box_ids required' });
+  if (!BOX_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+
+  try {
+    const moveIds = new Set();
+    for (const boxId of box_ids) {
+      await db.query(
+        'INSERT INTO box_scans (box_id, status, scanned_by, location, notes, photo_url) VALUES ($1,$2,$3,$4,$5,$6)',
+        [boxId, status, req.user.id, location, notes, photo_url || null]
+      );
+      const r = await db.query('UPDATE boxes SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING move_id', [status, boxId]);
+      if (r.rows[0]) moveIds.add(r.rows[0].move_id);
+    }
+    // Update delivered_boxes for all affected moves
+    for (const moveId of moveIds) {
+      await db.query(
+        'UPDATE moves SET delivered_boxes = (SELECT COUNT(*) FROM boxes WHERE move_id=$1 AND status=\'delivered\') WHERE id=$1',
+        [moveId]
+      );
+    }
+    res.json({ message: `${box_ids.length} boxes updated`, new_status: status });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to bulk update' });
   }
 };
 
@@ -96,7 +126,26 @@ exports.updateStatus = async (req, res) => {
       'UPDATE boxes SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [status, req.params.id]
     );
-    res.json(result.rows[0]);
+    const box = result.rows[0];
+    // Log the status change as a scan entry
+    await db.query(
+      'INSERT INTO box_scans (box_id, status, scanned_by, notes) VALUES ($1,$2,$3,$4)',
+      [box.id, status, req.user.id, 'Quick status update']
+    );
+    // Update delivered_boxes count on the move
+    if (status === 'delivered') {
+      await db.query(
+        'UPDATE moves SET delivered_boxes = (SELECT COUNT(*) FROM boxes WHERE move_id=$1 AND status=\'delivered\') WHERE id=$1',
+        [box.move_id]
+      );
+    } else {
+      // Recalculate in case it was previously delivered and now changed back
+      await db.query(
+        'UPDATE moves SET delivered_boxes = (SELECT COUNT(*) FROM boxes WHERE move_id=$1 AND status=\'delivered\') WHERE id=$1',
+        [box.move_id]
+      );
+    }
+    res.json(box);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update status' });
   }

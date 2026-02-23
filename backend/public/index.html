@@ -218,7 +218,7 @@ body {
   border-radius: 12px; padding: 14px; margin-bottom: 10px;
   display: flex; align-items: center; gap: 12px;
 }
-.box-icon { font-size: 28px; flex-shrink: 0; }
+.box-icon { width: 40px; height: 40px; flex-shrink: 0; background: var(--card2); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--accent); }
 .box-info { flex: 1; min-width: 0; }
 .box-label { font-weight: 600; font-size: 15px; }
 .box-meta { font-size: 12px; color: var(--sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -369,13 +369,7 @@ body {
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
 
 /* ADMIN TABS */
-.admin-tab {
-  flex: 1; padding: 8px 4px; border: none; border-radius: 8px;
-  background: transparent; color: var(--sub);
-  font-family: inherit; font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: all 0.15s; letter-spacing: 0.3px;
-}
-.admin-tab.active { background: var(--card); color: var(--text); }
+.admin-tab.active { background: #ffffff !important; color: var(--text) !important; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 
 /* ADMIN STAT ROW */
 .admin-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
@@ -587,6 +581,8 @@ body {
   /* Sidebar + desk-topbar: shown when logged in (CSS-only, no inline JS) */
   body.logged-in .desk-sidebar { display: flex !important; }
   body.logged-in .desk-topbar { display: flex !important; }
+  body.auth-mode .desk-topbar { display: none !important; }
+  body.auth-mode .desk-sidebar { display: none !important; }
 
   /* Right column: desk-topbar + screens */
   .app-body {
@@ -614,7 +610,7 @@ body {
   /* Each screen fills #screens absolutely, scrolls internally */
   .screen {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 60px; left: 0; right: 0; bottom: 0;
     opacity: 0;
     pointer-events: none;
     transform: none !important;
@@ -971,7 +967,7 @@ body {
 }
 
 
-/* ─── DESKTOP INNER TOPBAR ───────────────────────────────────── */
+/* ─── DESKTOP INNER TOPBAR (matches admin header) ───────────── */
 .desk-topbar {
   background: #ffffff;
   border-bottom: 1px solid var(--border);
@@ -982,9 +978,10 @@ body {
   justify-content: space-between;
   flex-shrink: 0;
   z-index: 100;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 .desk-topbar-breadcrumb {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.2px;
@@ -992,7 +989,7 @@ body {
 .desk-topbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 @media (max-width: 899px) {
   .desk-topbar { display: none !important; }
@@ -1018,7 +1015,9 @@ body {
 
   <nav class="desk-sidebar" id="deskSidebar">
     <div class="desk-sidebar-brand">
-      <div class="desk-sidebar-icon">📦</div>
+      <div class="desk-sidebar-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="m16 8 4 4-4 4"/><line x1="20" y1="12" x2="8" y2="12"/></svg>
+      </div>
       <div>
         <div class="desk-sidebar-title">MoveAssist</div>
         <div class="desk-sidebar-sub" id="deskSidebarRole">CUSTOMER PORTAL</div>
@@ -1052,9 +1051,11 @@ body {
       <div class="desk-topbar-breadcrumb" id="deskBreadcrumb">Dashboard</div>
       <div class="desk-topbar-right">
         <div class="server-dot" id="serverDot2"></div>
-        <div id="deskUserName" style="font-size:13px;font-weight:600;color:var(--text)"></div>
-        <div id="deskUserRole" style="font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px"></div>
-        <div class="avatar" id="deskAvatar">?</div>
+        <div style="text-align:right;line-height:1.3">
+          <div id="deskUserName" style="font-size:13px;font-weight:600;color:var(--text)"></div>
+          <div id="deskUserRole" style="font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px"></div>
+        </div>
+        <div class="avatar" id="deskAvatar" style="width:36px;height:36px;font-size:13px;cursor:default">?</div>
       </div>
     </div>
     <!-- SCREENS -->
@@ -1124,18 +1125,18 @@ body {
           <div class="section-sub" id="agentSubtitle">Assigned moves</div>
         </div>
       </div>
-      <div id="agentStatGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px"></div>
+      <div id="agentStatGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px"></div>
       <div id="agentMovesList"></div>
     </div>
 
     <!-- ADMIN DASHBOARD SCREEN -->
     <div class="screen" id="screen-admin">
       <!-- Admin Tab Bar -->
-      <div style="display:flex;gap:6px;margin-bottom:20px;background:var(--card2);padding:4px;border-radius:12px">
-        <button class="admin-tab active" id="atab-overview" onclick="switchAdminTab('overview')">Overview</button>
-        <button class="admin-tab" id="atab-moves" onclick="switchAdminTab('moves')">Moves</button>
-        <button class="admin-tab" id="atab-payments" onclick="switchAdminTab('payments')">Payments</button>
-        <button class="admin-tab" id="atab-users" onclick="switchAdminTab('users')">Users</button>
+      <div style="display:flex;gap:4px;margin-bottom:24px;background:#f1f5f9;padding:4px;border-radius:10px;border:1px solid var(--border)">
+        <button class="admin-tab active" id="atab-overview" onclick="switchAdminTab('overview')" style="flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">Overview</button>
+        <button class="admin-tab" id="atab-moves" onclick="switchAdminTab('moves')" style="flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">Moves</button>
+        <button class="admin-tab" id="atab-payments" onclick="switchAdminTab('payments')" style="flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">Payments</button>
+        <button class="admin-tab" id="atab-users" onclick="switchAdminTab('users')" style="flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">Users</button>
       </div>
       <div id="adminContent"><div style="text-align:center;padding:40px"><div class="spinner"></div></div></div>
     </div>
@@ -1169,10 +1170,17 @@ body {
 
     <!-- BOXES SCREEN -->
     <div class="screen" id="screen-boxes">
-      <button onclick="showScreen('move')" class="back-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="m15 18-6-6 6-6"/></svg> Move Detail</button>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <button onclick="openMove(currentMove.id)" class="back-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="m15 18-6-6 6-6"/></svg> Move Detail</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div><div class="section-head" style="margin-bottom:0">Boxes</div><div style="font-size:12px;color:var(--sub)" id="boxesMoveTitle"></div></div>
         <button class="btn btn-primary" onclick="openAddBox()" style="width:auto;padding:10px 16px;font-size:13px">+ Box</button>
+      </div>
+      <!-- Bulk action bar (shown when boxes selected) -->
+      <div id="bulkBar" style="display:none;background:var(--accent);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
+        <span id="bulkCount" style="color:#fff;font-size:13px;font-weight:700;flex:1">0 selected</span>
+        <button onclick="selectAllBoxes()" style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;color:#fff;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Select All</button>
+        <button onclick="clearSelection()" style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;color:#fff;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">Clear</button>
+        <button onclick="openBulkUpdate()" style="background:#fff;border:none;border-radius:8px;color:var(--accent);padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">⚡ Bulk Update</button>
       </div>
       <div id="boxesList"></div>
     </div>
@@ -1230,6 +1238,22 @@ body {
           <div class="chip-row" id="statusChips"></div>
           <div class="field"><label>Location</label><input type="text" id="scanLocation" placeholder="e.g. Living Room, Truck Bay 2"/></div>
           <div class="field"><label>Notes</label><input type="text" id="scanNotes" placeholder="Optional notes"/></div>
+          <!-- Photo proof upload -->
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:6px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Photo Proof (optional)
+            </label>
+            <div id="photoPreview" style="display:none;margin-bottom:8px;position:relative">
+              <img id="photoPreviewImg" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid var(--border)"/>
+              <button onclick="clearPhoto()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;border-radius:50%;width:24px;height:24px;color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">✕</button>
+            </div>
+            <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:var(--card2);border:1px dashed var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--sub)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Take photo or upload
+              <input type="file" id="scanPhoto" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSelect(this)"/>
+            </label>
+          </div>
           <div style="display:flex;gap:10px">
             <button class="btn btn-secondary" onclick="resetScanner()" style="flex:1">Scan Again</button>
             <button class="btn btn-primary" onclick="submitScan()" id="scanSubmitBtn" style="flex:2">Log Scan</button>
@@ -1251,7 +1275,7 @@ body {
 
     <!-- FURNITURE SCREEN -->
     <div class="screen" id="screen-furniture">
-      <button onclick="showScreen('move')" style="background:none;border:none;color:var(--sub);font-size:14px;cursor:pointer;margin-bottom:16px;padding:0">← Back</button>
+      <button onclick="openMove(currentMove.id)" style="background:none;border:none;color:var(--sub);font-size:14px;cursor:pointer;margin-bottom:16px;padding:0">← Back</button>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
         <div><div class="section-head" style="margin-bottom:0">Furniture</div><div style="font-size:12px;color:var(--sub)" id="furnMoveTitle"></div></div>
         <button class="btn btn-primary" onclick="openAddFurniture()" style="width:auto;padding:10px 16px;font-size:13px">+ Item</button>
@@ -1357,6 +1381,7 @@ body {
 </div>
 
 <!-- MODAL: Add Box -->
+<!-- MODAL: Add Box -->
 <div class="modal-overlay" id="addBoxModal" onclick="closeModal('addBoxModal')">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
@@ -1379,12 +1404,41 @@ body {
   </div>
 </div>
 
+<!-- MODAL: Bulk Update -->
+<div class="modal-overlay" id="bulkUpdateModal" onclick="closeModal('bulkUpdateModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚡ Bulk Update</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:16px" id="bulkModalSubtitle">Updating 0 boxes</div>
+    <div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:8px;letter-spacing:0.5px">SET STATUS TO</div>
+    <div class="chip-row" id="bulkStatusChips" style="margin-bottom:16px"></div>
+    <div class="field"><label>Location</label><input type="text" id="bulkLocation" placeholder="e.g. Living Room, Truck"/></div>
+    <div class="field"><label>Notes</label><input type="text" id="bulkNotes" placeholder="Optional notes for all boxes"/></div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:6px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Photo Proof (optional)
+      </label>
+      <div id="bulkPhotoPreview" style="display:none;margin-bottom:8px;position:relative">
+        <img id="bulkPhotoPreviewImg" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--border)"/>
+        <button onclick="clearBulkPhoto()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;border-radius:50%;width:24px;height:24px;color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:var(--card2);border:1px dashed var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--sub)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Take photo or upload
+        <input type="file" id="bulkPhoto" accept="image/*" capture="environment" style="display:none" onchange="handleBulkPhotoSelect(this)"/>
+      </label>
+    </div>
+    <button class="btn btn-primary" onclick="submitBulkUpdate()" id="bulkSubmitBtn">Update Boxes</button>
+  </div>
+</div>
+
+<!-- MODAL: Add Furniture -->
 <!-- MODAL: Add Furniture -->
 <div class="modal-overlay" id="addFurnModal" onclick="closeModal('addFurnModal')">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
-    <div class="modal-title">Add Furniture Item</div>
-    <div class="field"><label>Item Name</label><input type="text" id="newFurnName" placeholder="e.g. 3-Seater Sofa"/></div>
+    <div class="modal-title">Add Furniture — Pickup</div>    <div class="field"><label>Item Name</label><input type="text" id="newFurnName" placeholder="e.g. 3-Seater Sofa"/></div>
     <div class="field"><label>Category</label>
       <select id="newFurnCategory">
         <option value="sofa">Sofa / Couch</option>
@@ -1397,7 +1451,7 @@ body {
         <option value="other">Other</option>
       </select>
     </div>
-    <div class="field"><label>Current Condition</label>
+    <div class="field"><label>Condition at Pickup</label>
       <select id="newFurnCondition">
         <option value="excellent">Excellent</option>
         <option value="good" selected>Good</option>
@@ -1405,12 +1459,70 @@ body {
         <option value="poor">Poor</option>
       </select>
     </div>
-    <div class="field"><label>Existing Damage Notes</label><textarea id="newFurnDamage" placeholder="Any pre-existing damage? (optional)"></textarea></div>
+    <div class="field"><label>Pre-existing Damage Notes</label><textarea id="newFurnDamage" placeholder="Any damage before pickup? (optional)"></textarea></div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:6px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Pickup Photo Proof
+      </label>
+      <div id="addFurnPhotoPreview" style="display:none;margin-bottom:8px;position:relative">
+        <img id="addFurnPhotoImg" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--border)"/>
+        <button onclick="clearFurnPhoto('addFurn')" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;border-radius:50%;width:24px;height:24px;color:#fff;cursor:pointer;font-size:13px">✕</button>
+      </div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:var(--card2);border:1px dashed var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--sub)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Take photo or upload
+        <input type="file" id="addFurnPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handleFurnPhoto('addFurn',this)"/>
+      </label>
+    </div>
     <button class="btn btn-primary" onclick="addFurniture()" id="addFurnBtn">Add Item</button>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<!-- MODAL: Furniture Delivery -->
+<div class="modal-overlay" id="deliverFurnModal" onclick="closeModal('deliverFurnModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Mark as Delivered</div>
+    <input type="hidden" id="deliverFurnId"/>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:16px" id="deliverFurnName"></div>
+    <div class="field"><label>Condition at Delivery</label>
+      <select id="deliverFurnCondition">
+        <option value="excellent">Excellent — no change</option>
+        <option value="good" selected>Good</option>
+        <option value="fair">Fair</option>
+        <option value="poor">Poor — damaged</option>
+      </select>
+    </div>
+    <div class="field"><label>Delivery Notes</label><textarea id="deliverFurnNotes" placeholder="Any new damage or notes?"></textarea></div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:6px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Delivery Photo Proof <span style="color:var(--error);margin-left:2px">*</span>
+      </label>
+      <div id="deliverFurnPhotoPreview" style="display:none;margin-bottom:8px;position:relative">
+        <img id="deliverFurnPhotoImg" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--border)"/>
+        <button onclick="clearFurnPhoto('deliverFurn')" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;border-radius:50%;width:24px;height:24px;color:#fff;cursor:pointer;font-size:13px">✕</button>
+      </div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:var(--card2);border:1px dashed var(--border);border-radius:10px;cursor:pointer;font-size:13px;color:var(--sub)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Take photo or upload
+        <input type="file" id="deliverFurnPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handleFurnPhoto('deliverFurn',this)"/>
+      </label>
+    </div>
+    <button class="btn btn-primary" onclick="submitFurnDelivery()" id="deliverFurnBtn">Confirm Delivery</button>
+  </div>
+</div>
+
+<!-- MODAL: Complete Move Checklist -->
+<div class="modal-overlay" id="completeMoveModal" onclick="closeModal('completeMoveModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Complete Move</div>
+    <div id="completeMoveChecklist" style="margin-bottom:18px"></div>
+    <div id="completeMoveActions"></div>
+  </div>
+</div>
 <script>
 // ─── STATE ───────────────────────────────────────────────────
 const BASE = window.location.origin;
@@ -1524,12 +1636,9 @@ function doLogout() {
   localStorage.removeItem('ma_token');
   localStorage.removeItem('ma_user');
   document.getElementById('bottomNav').style.display = 'none';
-  document.body.classList.remove('logged-in');
   document.getElementById('topbarUserInfo').style.display = 'none';
-  const deskTopbar = document.getElementById('deskTopbar');
-  if (deskTopbar) deskTopbar.style.display = '';
-  // Sidebar hidden via CSS: body.logged-in removed
   document.body.classList.remove('logged-in');
+  document.body.classList.add('auth-mode');
   showScreen('auth');
 }
 
@@ -1537,6 +1646,7 @@ function isDesktop() { return window.innerWidth >= 900; }
 
 function showApp() {
   document.body.classList.add('logged-in');
+  document.body.classList.remove('auth-mode');
   // Bottom nav (mobile only)
   document.getElementById('bottomNav').style.display = 'flex';
 
@@ -1555,21 +1665,19 @@ function showApp() {
     roleEl.style.color = roleBadgeColor[user?.role] || 'var(--sub)';
   }
 
-  // Desktop sidebar
+  // Desktop sidebar role label
   const roleLabel = { admin: 'SAAS CONTROL CENTER', agent: 'AGENT PORTAL', customer: 'CUSTOMER PORTAL' };
   document.getElementById('deskSidebarRole').textContent = roleLabel[user?.role] || 'CUSTOMER PORTAL';
 
-  // Sidebar shown by CSS: body.logged-in .desk-sidebar { display:flex } @media >=900px
-  // Never set sidebar inline style — let CSS handle it
-  const initials2 = user?.name?.split(' ').map(w => w[0]).join('').substring(0, 2) || '?';
-  // Desktop inner topbar
-  const deskTopbar = document.getElementById('deskTopbar');
-  if (deskTopbar) {
-    document.getElementById('deskUserName').textContent = user?.name || '';
-    document.getElementById('deskUserRole').textContent = (user?.role || '').toUpperCase();
-    document.getElementById('deskAvatar').textContent = initials2;
-    deskTopbar.style.display = ''; // let CSS control (flex when >=900px)
-  }
+  // Populate desktop inner topbar
+  document.getElementById('deskUserName').textContent = user?.name || '';
+  document.getElementById('deskUserRole').textContent = (user?.role || '').toUpperCase();
+  document.getElementById('deskAvatar').textContent = initials;
+
+  // Sync server dot to desktop topbar
+  const dot1 = document.getElementById('serverDot');
+  const dot2 = document.getElementById('serverDot2');
+  if (dot1 && dot2) { dot2.className = dot1.className; dot2.style.cssText = dot1.style.cssText; }
 
   // Update sidebar home button label based on role
   const homeBtn = document.getElementById('dsk-home');
@@ -1580,6 +1688,10 @@ function showApp() {
     else if (user?.role === 'agent') homeBtn.innerHTML = svgPart + ' Dashboard';
     else homeBtn.innerHTML = svgPart + ' My Moves';
   }
+
+  // Hide QR Scanner from sidebar for admin (field tool only)
+  const scanBtn = document.getElementById('dsk-scan');
+  if (scanBtn) scanBtn.style.display = user?.role === 'admin' ? 'none' : '';
 
   // Topbar user info (mobile only)
   document.getElementById('topbarUserInfo').style.display = isDesktop() ? 'none' : 'flex';
@@ -1653,8 +1765,13 @@ function showScreen(id) {
 }
 
 function goBack() {
-  showScreen('home');
-  loadMoves();
+  if (user?.role === 'agent' || user?.role === 'admin') {
+    showScreen('agent');
+    loadAgentMoves();
+  } else {
+    showScreen('home');
+    loadMoves();
+  }
 }
 
 function setTopbar(screen) {
@@ -1712,17 +1829,17 @@ async function loadAgentMoves() {
     const done = moves.filter(m => m.status === 'completed').length;
     if (statGrid) statGrid.innerHTML = `
       <div class="stat-card">
-        <div class="stat-icon" style="background:#eff6ff;color:var(--accent)">📋</div>
+        <div class="stat-icon" style="background:#eff6ff;color:var(--accent)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
         <div class="stat-val">${moves.length}</div>
         <div class="stat-label">Total Assigned</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:#fef3c7;color:#b45309">🚛</div>
+        <div class="stat-icon" style="background:#fef3c7;color:#b45309"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="m16 8 4 4-4 4"/><line x1="20" y1="12" x2="8" y2="12"/></svg></div>
         <div class="stat-val" style="color:var(--accent)">${active + inProg}</div>
         <div class="stat-label">In Progress</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:#dcfce7;color:#15803d">✅</div>
+        <div class="stat-icon" style="background:#dcfce7;color:#15803d"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
         <div class="stat-val" style="color:var(--success)">${done}</div>
         <div class="stat-label">Completed</div>
       </div>
@@ -1737,7 +1854,11 @@ async function loadAgentMoves() {
       const info = STATUS_LABELS[m.status] || { label: m.status, color: 'var(--sub)', icon: '📦' };
       const totalBoxes = parseInt(m.total_boxes) || 0;
       const deliveredBoxes = parseInt(m.delivered_boxes) || 0;
-      const progress = totalBoxes > 0 ? Math.round((deliveredBoxes/totalBoxes)*100) : 0;
+      const totalFurniture = parseInt(m.total_furniture) || 0;
+      const deliveredFurniture = parseInt(m.delivered_furniture) || 0;
+      const totalItems = totalBoxes + totalFurniture;
+      const deliveredItems = deliveredBoxes + deliveredFurniture;
+      const progress = totalItems > 0 ? Math.round((deliveredItems/totalItems)*100) : 0;
       return `
       <div class="agent-move-card" onclick="openMove('${m.id}')">
         <div class="agent-card-top">
@@ -1752,11 +1873,18 @@ async function loadAgentMoves() {
           <div style="font-weight:600;font-size:14px;margin-bottom:4px">${m.title||'Unnamed Move'}</div>
           <div class="move-card-route"><span class="from">${m.from_address||'—'}</span><span class="arrow">→</span><span class="to">${m.to_address||'—'}</span></div>
         </div>
-        ${totalBoxes > 0 ? `
+        ${totalItems > 0 ? `
         <div class="agent-card-boxes">
-          <span>📦 ${deliveredBoxes}/${totalBoxes} delivered</span>
-          <div class="agent-card-progress"><div class="agent-card-progress-fill" style="width:${progress}%"></div></div>
-          <span>${progress}%</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;gap:12px;margin-bottom:6px;font-size:12px">
+              ${totalBoxes > 0 ? `<span>📦 ${deliveredBoxes}/${totalBoxes} boxes</span>` : ''}
+              ${totalFurniture > 0 ? `<span>🛋️ ${deliveredFurniture}/${totalFurniture} furniture</span>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="agent-card-progress" style="flex:1"><div class="agent-card-progress-fill" style="width:${progress}%"></div></div>
+              <span style="font-size:12px;font-weight:700;color:${progress===100?'var(--success)':'var(--text)'}">${progress}%</span>
+            </div>
+          </div>
         </div>` : '<div style="font-size:12px;color:var(--dim)">No boxes tracked yet</div>'}
         ${isPending ? `
         <div style="margin-top:12px">
@@ -1790,22 +1918,22 @@ async function loadMoves() {
       if (secTitle) secTitle.style.display = 'block';
       banner.innerHTML = `
         <div class="kpi-card">
-          <div class="kpi-icon" style="background:#eff6ff;color:var(--accent)">🏠</div>
+          <div class="kpi-icon" style="background:#eff6ff;color:var(--accent)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
           <div class="kpi-val">${moves.length}</div>
           <div class="kpi-label">Total Moves</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon" style="background:#dcfce7;color:#15803d">🟢</div>
+          <div class="kpi-icon" style="background:#dcfce7;color:#15803d"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
           <div class="kpi-val" style="color:#15803d">${active}</div>
           <div class="kpi-label">Active</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon" style="background:#fef3c7;color:#b45309">⚠️</div>
+          <div class="kpi-icon" style="background:#fef3c7;color:#b45309"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
           <div class="kpi-val" style="color:#b45309">${pending}</div>
           <div class="kpi-label">Payment Pending</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-icon" style="background:#f0fdf4;color:#166534">📦</div>
+          <div class="kpi-icon" style="background:#f0fdf4;color:#166534"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
           <div class="kpi-val" style="color:#166534">${delivered}/${totalBoxes}</div>
           <div class="kpi-label">Boxes Delivered</div>
         </div>`;
@@ -1939,6 +2067,13 @@ async function openMove(id) {
               <span class="label">${!paid?'🔒 ':''}Generate PDF Report</span>
             </button>
           </div>
+          ${(user?.role === 'agent' || user?.role === 'admin') && (m.status === 'in_progress' || m.status === 'active') ? `
+          <div class="detail-card" style="margin-top:12px">
+            <button onclick="attemptCompleteMove('${m.id}')" style="width:100%;padding:12px;background:#dcfce7;border:1.5px solid #86efac;border-radius:10px;color:#15803d;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Mark Move as Complete
+            </button>
+          </div>` : ''}
           ${m.agent_id ? `<div class="detail-card">
             <div class="detail-card-label">Assigned Agent</div>
             <div style="display:flex;align-items:center;gap:10px">
@@ -1991,6 +2126,65 @@ async function updateMoveStatus(id, status) {
   } catch(e) { toast(e.message, 'error'); }
 }
 
+async function attemptCompleteMove(id) {
+  // Fetch current state for pre-flight checklist
+  const [boxes, furniture] = await Promise.all([
+    api('GET', `/api/boxes/move/${id}`),
+    api('GET', `/api/furniture/move/${id}`)
+  ]);
+
+  const pendingBoxes        = boxes.filter(b => b.status !== 'delivered');
+  const pendingFurn         = furniture.filter(f => !f.condition_after);
+  const missingPickupPhoto  = furniture.filter(f => !(f.photos||[]).find(p => p.photo_type==='before'));
+  const missingDelivPhoto   = furniture.filter(f => f.condition_after && !(f.photos||[]).find(p => p.photo_type==='after'));
+
+  const checks = [
+    { label: `All boxes delivered`,         ok: pendingBoxes.length === 0,       detail: pendingBoxes.length ? `${pendingBoxes.length} box${pendingBoxes.length>1?'es':''} still pending` : null },
+    { label: `All furniture delivered`,     ok: pendingFurn.length === 0,         detail: pendingFurn.length ? `${pendingFurn.length} item${pendingFurn.length>1?'s':''} not marked delivered` : null },
+    { label: `Delivery photos documented`,  ok: missingDelivPhoto.length === 0,   detail: missingDelivPhoto.length ? `Missing for: ${missingDelivPhoto.map(f=>f.name).join(', ')}` : null },
+  ];
+
+  const allClear = checks.every(c => c.ok);
+
+  document.getElementById('completeMoveChecklist').innerHTML = checks.map(c => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:${c.ok ? '#dcfce7' : '#fee2e2'};display:flex;align-items:center;justify-content:center;margin-top:1px">
+        ${c.ok
+          ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`
+          : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+        }
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:${c.ok ? 'var(--text)' : 'var(--error)'}">${c.label}</div>
+        ${c.detail ? `<div style="font-size:11px;color:var(--error);margin-top:2px">${c.detail}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('completeMoveActions').innerHTML = allClear
+    ? `<button onclick="confirmCompleteMove('${id}')" id="confirmCompleteBtn" class="btn btn-primary" style="background:#16a34a;border-color:#16a34a">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Confirm — Mark as Complete
+       </button>`
+    : `<div style="font-size:12px;color:var(--sub);text-align:center;padding:8px 0">Resolve all issues above to complete this move</div>`;
+
+  openModal('completeMoveModal');
+}
+
+async function confirmCompleteMove(id) {
+  const btn = document.getElementById('confirmCompleteBtn');
+  btn.disabled = true; btn.textContent = 'Completing...';
+  try {
+    await api('POST', `/api/moves/${id}/complete`, {});
+    toast('🎉 Move marked as complete!', 'success');
+    closeModal('completeMoveModal');
+    openMove(id);
+  } catch(e) {
+    toast(e.message || 'Could not complete move', 'error');
+    btn.disabled = false; btn.textContent = 'Confirm — Mark as Complete';
+  }
+}
+
 // ─── BOXES ────────────────────────────────────────────────────
 async function openBoxes(moveId) {
   currentMove = currentMove || { id: moveId };
@@ -2004,29 +2198,187 @@ async function loadBoxes(moveId) {
   const id = moveId || currentMove?.id;
   const list = document.getElementById('boxesList');
   list.innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
+  selectedBoxIds.clear();
+  updateBulkBar();
   try {
     const boxes = await api('GET', `/api/boxes/move/${id}`);
     if (!boxes.length) {
       list.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">No boxes yet</div><div class="empty-sub">Tap + Box to add your first</div></div>`;
       return;
     }
-    const catIcon = { kitchen:'🍳', bedroom:'🛏️', electronics:'💻', fragile:'⚠️', clothes:'👕', books:'📚', bathroom:'🚿', general:'📦' };
-    list.innerHTML = boxes.map(b => `
-      <div class="box-item" onclick="openBoxDetail('${b.id}')">
-        <div class="box-icon">${catIcon[b.category]||'📦'}</div>
-        <div class="box-info">
-          <div class="box-label">${b.label || 'Unlabeled Box'}</div>
-          <div class="box-meta">${b.contents || b.category || ''}</div>
+    const catIcon = {
+      kitchen:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M8 3v4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3"/><rect x="2" y="8" width="20" height="13" rx="2"/><line x1="2" y1="13" x2="22" y2="13"/></svg>`,
+      bedroom:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M2 9V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4"/><path d="M2 9h20v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z"/><line x1="2" y1="14" x2="22" y2="14"/></svg>`,
+      electronics: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>`,
+      fragile:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M12 2l3 7h7l-5.5 4 2 7L12 17l-6.5 3 2-7L2 9h7z"/></svg>`,
+      clothes:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>`,
+      books:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+      bathroom:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M9 6a3 3 0 1 0 0-6"/><path d="M9 6H3v12a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V6H9z"/><line x1="3" y1="11" x2="21" y2="11"/></svg>`,
+      general:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
+    };
+    const statusOrder = ['created','packed','loaded','in_transit','delivered'];
+    list.innerHTML = boxes.map(b => {
+      const nextStatus = statusOrder[statusOrder.indexOf(b.status) + 1];
+      return `
+      <div class="box-item" id="boxitem-${b.id}" style="position:relative;cursor:default">
+        <div style="display:flex;align-items:center;gap:10px;flex:1" onclick="openBoxDetail('${b.id}')">
+          <div class="box-icon">${catIcon[b.category]||'📦'}</div>
+          <div class="box-info" style="flex:1;min-width:0">
+            <div class="box-label">${b.label || 'Unlabeled Box'}</div>
+            <div class="box-meta">${b.contents || b.category || ''}</div>
+          </div>
+          <span class="badge badge-${b.status}" style="flex-shrink:0">${b.status.replace('_',' ')}</span>
         </div>
-        <span class="badge badge-${b.status}">${b.status}</span>
-      </div>
-    `).join('');
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          ${nextStatus ? `<button onclick="quickStatusUpdate('${b.id}','${nextStatus}',this)" style="flex:1;padding:6px 10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">→ ${nextStatus.replace('_',' ')}</button>
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--sub);cursor:pointer;flex-shrink:0">
+            <input type="checkbox" id="chk-${b.id}" onchange="toggleBoxSelect('${b.id}',this.checked)" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer"/>
+            Select
+          </label>` : `<span style="font-size:11px;color:var(--success);font-weight:600">✓ All done</span>`}
+        </div>
+      </div>`;
+    }).join('');
   } catch(e) {
     list.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
   }
 }
 
 function openAddBox() { openModal('addBoxModal'); }
+
+// ── BULK SELECT ───────────────────────────────────────────────
+let selectedBoxIds = new Set();
+let bulkSelectedStatus = '';
+let scanPhotoDataUrl = null;
+let bulkPhotoDataUrl = null;
+
+function toggleBoxSelect(id, checked) {
+  if (checked) selectedBoxIds.add(id);
+  else selectedBoxIds.delete(id);
+  const item = document.getElementById('boxitem-' + id);
+  if (item) item.style.background = checked ? 'rgba(37,99,235,0.06)' : '';
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  const count = document.getElementById('bulkCount');
+  if (!bar) return;
+  if (selectedBoxIds.size > 0) {
+    bar.style.display = 'flex';
+    count.textContent = `${selectedBoxIds.size} box${selectedBoxIds.size > 1 ? 'es' : ''} selected`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function selectAllBoxes() {
+  document.querySelectorAll('#boxesList input[type=checkbox]').forEach(chk => {
+    chk.checked = true;
+    const id = chk.id.replace('chk-','');
+    selectedBoxIds.add(id);
+    const item = document.getElementById('boxitem-' + id);
+    if (item) item.style.background = 'rgba(37,99,235,0.06)';
+  });
+  updateBulkBar();
+}
+
+function clearSelection() {
+  selectedBoxIds.clear();
+  document.querySelectorAll('#boxesList input[type=checkbox]').forEach(chk => {
+    chk.checked = false;
+    const id = chk.id.replace('chk-','');
+    const item = document.getElementById('boxitem-' + id);
+    if (item) item.style.background = '';
+  });
+  updateBulkBar();
+}
+
+function openBulkUpdate() {
+  if (!selectedBoxIds.size) return;
+  document.getElementById('bulkModalSubtitle').textContent = `Updating ${selectedBoxIds.size} box${selectedBoxIds.size > 1 ? 'es' : ''}`;
+  bulkSelectedStatus = '';
+  bulkPhotoDataUrl = null;
+  document.getElementById('bulkLocation').value = '';
+  document.getElementById('bulkNotes').value = '';
+  document.getElementById('bulkPhotoPreview').style.display = 'none';
+  const STATUSES = ['packed','loaded','in_transit','delivered'];
+  document.getElementById('bulkStatusChips').innerHTML = STATUSES.map(s =>
+    `<div class="chip" onclick="selectBulkStatus('${s}',this)">${s.replace('_',' ')}</div>`
+  ).join('');
+  openModal('bulkUpdateModal');
+}
+
+function selectBulkStatus(s, el) {
+  bulkSelectedStatus = s;
+  document.querySelectorAll('#bulkStatusChips .chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+async function submitBulkUpdate() {
+  if (!bulkSelectedStatus) { toast('Select a status first', 'error'); return; }
+  const btn = document.getElementById('bulkSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Updating...';
+  try {
+    const result = await api('POST', '/api/boxes/bulk-scan', {
+      box_ids: [...selectedBoxIds],
+      status: bulkSelectedStatus,
+      location: document.getElementById('bulkLocation').value,
+      notes: document.getElementById('bulkNotes').value,
+      photo_url: bulkPhotoDataUrl || null,
+    });
+    toast(result.message + ' ✓', 'success');
+    closeModal('bulkUpdateModal');
+    clearSelection();
+    await loadBoxes();
+  } catch(e) { toast(e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Update Boxes';
+}
+
+function handleBulkPhotoSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    bulkPhotoDataUrl = e.target.result;
+    document.getElementById('bulkPhotoPreviewImg').src = bulkPhotoDataUrl;
+    document.getElementById('bulkPhotoPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearBulkPhoto() {
+  bulkPhotoDataUrl = null;
+  document.getElementById('bulkPhoto').value = '';
+  document.getElementById('bulkPhotoPreview').style.display = 'none';
+}
+
+async function quickStatusUpdate(boxId, status, btn) {
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    await api('PUT', `/api/boxes/${boxId}/status`, { status });
+    toast(`→ ${status.replace('_',' ')} ✓`, 'success');
+    await loadBoxes();
+  } catch(e) { toast(e.message, 'error'); btn.disabled = false; }
+}
+
+// ── PHOTO PROOF (scan form) ───────────────────────────────────
+function handlePhotoSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    scanPhotoDataUrl = e.target.result;
+    document.getElementById('photoPreviewImg').src = scanPhotoDataUrl;
+    document.getElementById('photoPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPhoto() {
+  scanPhotoDataUrl = null;
+  document.getElementById('scanPhoto').value = '';
+  document.getElementById('photoPreview').style.display = 'none';
+}
 
 async function addBox() {
   const btn = document.getElementById('addBoxBtn');
@@ -2052,7 +2404,16 @@ async function openBoxDetail(id, boxData) {
   content.innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
   try {
     const box = boxData || await api('GET', `/api/boxes/qr/${id}`).catch(() => null) || { id };
-    const catIcon = { kitchen:'🍳', bedroom:'🛏️', electronics:'💻', fragile:'⚠️', clothes:'👕', books:'📚', bathroom:'🚿', general:'📦' };
+    const catIcon = {
+      kitchen:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M8 3v4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3"/><rect x="2" y="8" width="20" height="13" rx="2"/><line x1="2" y1="13" x2="22" y2="13"/></svg>`,
+      bedroom:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M2 9V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4"/><path d="M2 9h20v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z"/><line x1="2" y1="14" x2="22" y2="14"/></svg>`,
+      electronics: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>`,
+      fragile:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M12 2l3 7h7l-5.5 4 2 7L12 17l-6.5 3 2-7L2 9h7z"/></svg>`,
+      clothes:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>`,
+      books:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+      bathroom:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M9 6a3 3 0 1 0 0-6"/><path d="M9 6H3v12a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V6H9z"/><line x1="3" y1="11" x2="21" y2="11"/></svg>`,
+      general:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
+    };
 
     let qrHtml = '';
     if (box.qr_image_url?.startsWith('data:image')) {
@@ -2117,32 +2478,95 @@ async function loadFurniture(moveId) {
   list.innerHTML = '<div style="text-align:center;padding:30px"><div class="spinner"></div></div>';
   try {
     const items = await api('GET', `/api/furniture/move/${id}`);
-    const catIcon = { sofa:'🛋️', bed:'🛏️', table:'🪑', chair:'💺', wardrobe:'🚪', appliance:'🏠', tv:'📺', other:'📦' };
+    const catSvg = {
+      sofa:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><path d="M20 9V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v2"/><path d="M2 11a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6H2v-6z"/><path d="M4 17v2m16-2v2"/></svg>`,
+      bed:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><path d="M2 9V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4"/><path d="M2 9h20v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z"/><line x1="2" y1="14" x2="22" y2="14"/></svg>`,
+      table:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><rect x="3" y="6" width="18" height="4" rx="1"/><line x1="7" y1="10" x2="7" y2="18"/><line x1="17" y1="10" x2="17" y2="18"/></svg>`,
+      chair:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><path d="M5 4h14v8H5z"/><path d="M3 12h18v3H3z"/><line x1="7" y1="15" x2="7" y2="20"/><line x1="17" y1="15" x2="17" y2="20"/></svg>`,
+      wardrobe:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="12" y1="2" x2="12" y2="22"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/></svg>`,
+      appliance: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="8" x2="19" y2="8"/><circle cx="12" cy="15" r="2"/></svg>`,
+      tv:        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>`,
+      other:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
+    };
     const condColor = { excellent:'var(--success)', good:'var(--accent2)', fair:'var(--warn)', poor:'var(--error)' };
     if (!items.length) {
-      list.innerHTML = `<div class="empty"><div class="empty-icon">🛋️</div><div class="empty-title">No items yet</div><div class="empty-sub">Document your furniture before the move</div></div>`;
+      list.innerHTML = `<div class="empty"><div class="empty-icon" style="font-size:36px">🛋️</div><div class="empty-title">No furniture yet</div><div class="empty-sub">Document items before the move</div></div>`;
       return;
     }
-    list.innerHTML = items.map(f => `
-      <div class="furniture-item">
-        <div style="font-size:28px">${catIcon[f.category]||'📦'}</div>
-        <div style="flex:1">
-          <div style="font-weight:600;font-size:15px">${f.name}</div>
-          <div style="font-size:12px;margin-top:2px">
-            <span style="color:${condColor[f.condition_before]||'var(--sub)'}">Before: ${f.condition_before||'—'}</span>
-            ${f.condition_after ? ` → <span style="color:${condColor[f.condition_after]}">After: ${f.condition_after}</span>` : ''}
+    list.innerHTML = items.map(f => {
+      const photos = f.photos || [];
+      const beforePhoto = photos.find(p => p.photo_type === 'before');
+      const afterPhoto  = photos.find(p => p.photo_type === 'after');
+      const delivered   = !!f.condition_after;
+      return `
+      <div class="card" style="padding:14px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div class="box-icon" style="flex-shrink:0">${catSvg[f.category]||catSvg.other}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:15px">${f.name}</div>
+            <div style="font-size:12px;margin-top:2px;display:flex;gap:8px;flex-wrap:wrap">
+              <span style="color:${condColor[f.condition_before]||'var(--sub)'}">Before: ${f.condition_before||'—'}</span>
+              ${delivered ? `<span>→</span><span style="color:${condColor[f.condition_after]}">After: ${f.condition_after}</span>` : ''}
+            </div>
+            ${f.damage_notes ? `<div style="font-size:11px;color:var(--error);margin-top:3px">⚠️ ${f.damage_notes}</div>` : ''}
           </div>
-          ${f.damage_notes ? `<div style="font-size:11px;color:var(--error);margin-top:3px">⚠️ ${f.damage_notes}</div>` : ''}
+          ${delivered
+            ? `<span style="font-size:11px;font-weight:700;color:var(--success);white-space:nowrap">✓ Delivered</span>`
+            : `<button onclick="openFurnDelivery('${f.id}','${f.name.replace(/'/g,"\\'")}');event.stopPropagation()" style="white-space:nowrap;padding:6px 12px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Mark Delivered</button>`
+          }
         </div>
-        ${!f.condition_after ? `<button onclick="markConditionAfter('${f.id}')" style="background:var(--card2);border:1px solid var(--border);color:var(--sub);font-family:inherit;font-size:11px;padding:6px 10px;border-radius:8px;cursor:pointer;">After</button>` : ''}
-      </div>
-    `).join('');
+        ${(beforePhoto || afterPhoto) ? `
+        <div style="display:flex;gap:8px">
+          ${beforePhoto ? `<div style="flex:1"><div style="font-size:10px;color:var(--sub);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Pickup</div><img src="${beforePhoto.photo_url}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border)"/></div>` : ''}
+          ${afterPhoto  ? `<div style="flex:1"><div style="font-size:10px;color:var(--sub);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Delivery</div><img src="${afterPhoto.photo_url}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border)"/></div>` : ''}
+        </div>` : ''}
+      </div>`;
+    }).join('');
   } catch(e) {
     list.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
   }
 }
 
-function openAddFurniture() { openModal('addFurnModal'); }
+function openAddFurniture() {
+  addFurnPhotoDataUrl = null;
+  document.getElementById('addFurnPhotoPreview').style.display = 'none';
+  document.getElementById('newFurnName').value = '';
+  document.getElementById('newFurnDamage').value = '';
+  openModal('addFurnModal');
+}
+
+let addFurnPhotoDataUrl = null;
+let deliverFurnPhotoDataUrl = null;
+
+function handleFurnPhoto(prefix, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    if (prefix === 'addFurn') {
+      addFurnPhotoDataUrl = e.target.result;
+      document.getElementById('addFurnPhotoImg').src = addFurnPhotoDataUrl;
+      document.getElementById('addFurnPhotoPreview').style.display = 'block';
+    } else {
+      deliverFurnPhotoDataUrl = e.target.result;
+      document.getElementById('deliverFurnPhotoImg').src = deliverFurnPhotoDataUrl;
+      document.getElementById('deliverFurnPhotoPreview').style.display = 'block';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearFurnPhoto(prefix) {
+  if (prefix === 'addFurn') {
+    addFurnPhotoDataUrl = null;
+    document.getElementById('addFurnPhotoInput').value = '';
+    document.getElementById('addFurnPhotoPreview').style.display = 'none';
+  } else {
+    deliverFurnPhotoDataUrl = null;
+    document.getElementById('deliverFurnPhotoInput').value = '';
+    document.getElementById('deliverFurnPhotoPreview').style.display = 'none';
+  }
+}
 
 async function addFurniture() {
   const btn = document.getElementById('addFurnBtn');
@@ -2153,24 +2577,44 @@ async function addFurniture() {
       category: document.getElementById('newFurnCategory').value,
       condition_before: document.getElementById('newFurnCondition').value,
       damage_notes: document.getElementById('newFurnDamage').value,
+      photo_url: addFurnPhotoDataUrl,
     });
     closeModal('addFurnModal');
     toast('Furniture item added!', 'success');
-    ['newFurnName','newFurnDamage'].forEach(id => document.getElementById(id).value = '');
+    addFurnPhotoDataUrl = null;
     loadFurniture();
   } catch(e) { toast(e.message, 'error'); }
   btn.disabled = false; btn.textContent = 'Add Item';
 }
 
-async function markConditionAfter(id) {
-  const cond = prompt('Post-move condition? (excellent/good/fair/poor)');
-  if (!cond) return;
-  const notes = prompt('Any new damage notes? (or press Enter to skip)') || '';
+function openFurnDelivery(id, name) {
+  deliverFurnPhotoDataUrl = null;
+  document.getElementById('deliverFurnId').value = id;
+  document.getElementById('deliverFurnName').textContent = name;
+  document.getElementById('deliverFurnNotes').value = '';
+  document.getElementById('deliverFurnPhotoPreview').style.display = 'none';
+  openModal('deliverFurnModal');
+}
+
+async function submitFurnDelivery() {
+  if (!deliverFurnPhotoDataUrl) {
+    toast('Delivery photo proof is required', 'error');
+    return;
+  }
+  const btn = document.getElementById('deliverFurnBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
   try {
-    await api('PUT', `/api/furniture/${id}/condition-after`, { condition_after: cond, damage_notes: notes });
-    toast('Condition updated!', 'success');
+    await api('PUT', `/api/furniture/${document.getElementById('deliverFurnId').value}/condition-after`, {
+      condition_after: document.getElementById('deliverFurnCondition').value,
+      damage_notes: document.getElementById('deliverFurnNotes').value,
+      photo_url: deliverFurnPhotoDataUrl,
+    });
+    toast('Delivery logged ✓', 'success');
+    closeModal('deliverFurnModal');
+    deliverFurnPhotoDataUrl = null;
     loadFurniture();
   } catch(e) { toast(e.message, 'error'); }
+  btn.disabled = false; btn.textContent = 'Confirm Delivery';
 }
 
 // ─── QR SCAN ──────────────────────────────────────────────────
@@ -2333,12 +2777,17 @@ function resetScanner() {
   scannedQR = null;
   selectedScanStatus = '';
   scanPaused = false;
+  scanPhotoDataUrl = null;
   document.getElementById('scanResult').style.display = 'none';
   document.getElementById('scanFrame').className = 'scan-frame';
   document.getElementById('scanStatus').textContent = 'Scanning...';
   document.getElementById('scanLocation').value = '';
   document.getElementById('scanNotes').value = '';
   document.getElementById('manualQR').value = '';
+  const photoInput = document.getElementById('scanPhoto');
+  if (photoInput) photoInput.value = '';
+  const photoPreview = document.getElementById('photoPreview');
+  if (photoPreview) photoPreview.style.display = 'none';
   scanAnimFrame = requestAnimationFrame(scanFrame);
 }
 
@@ -2413,6 +2862,7 @@ async function submitScan() {
       status: selectedScanStatus,
       location: document.getElementById('scanLocation').value,
       notes: document.getElementById('scanNotes').value,
+      photo_url: scanPhotoDataUrl || null,
     });
     toast(`Box marked as ${selectedScanStatus.replace('_',' ')} ✓`, 'success');
     resetScanner();
@@ -2776,21 +3226,28 @@ async function renderAdminOverview() {
     ]);
     adminData.stats = stats; adminData.pending = pending;
     c.innerHTML = `
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:16px;padding:20px;margin-bottom:16px;text-align:center">
-        <div style="font-size:11px;color:var(--sub);font-weight:600;letter-spacing:0.8px;margin-bottom:4px">TOTAL REVENUE COLLECTED</div>
-        <div style="font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--accent)">₹${parseFloat(stats.payments.total_collected).toLocaleString('en-IN')}</div>
-      </div>
-      <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">MOVES</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800">${stats.moves.total}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Total Moves</div></div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--warn)">${stats.moves.pending_payment}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Pending Payment</div></div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#a78bfa">${stats.moves.under_verification}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Verifying</div></div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--success)">${parseInt(stats.moves.active)+parseInt(stats.moves.in_progress)}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Active</div></div>
-      </div>
-      <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">USERS</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--accent2)">${stats.users.customers}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Customers</div></div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px"><div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--accent)">${stats.users.agents}</div><div style="font-size:11px;color:var(--sub);margin-top:2px">Agents</div></div>
+      <!-- KPI Row like admin.html -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+          <div style="font-size:11px;color:var(--sub);font-weight:600;letter-spacing:0.5px;margin-bottom:8px">TOTAL MOVES</div>
+          <div style="font-size:32px;font-weight:800;color:var(--text);line-height:1">${stats.moves.total}</div>
+          <div style="font-size:11px;color:var(--success);margin-top:4px">+${parseInt(stats.moves.active)+parseInt(stats.moves.in_progress)} active</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+          <div style="font-size:11px;color:var(--sub);font-weight:600;letter-spacing:0.5px;margin-bottom:8px">PAYMENT PENDING</div>
+          <div style="font-size:32px;font-weight:800;color:var(--warn);line-height:1">${stats.moves.unpaid}</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:4px">${stats.pending_verifications} verifying</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+          <div style="font-size:11px;color:var(--sub);font-weight:600;letter-spacing:0.5px;margin-bottom:8px">REVENUE COLLECTED</div>
+          <div style="font-size:32px;font-weight:800;color:var(--accent);line-height:1">₹${parseFloat(stats.revenue?.collected || 0).toLocaleString('en-IN')}</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:4px">${stats.users.customers} customers</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+          <div style="font-size:11px;color:var(--sub);font-weight:600;letter-spacing:0.5px;margin-bottom:8px">FIELD AGENTS</div>
+          <div style="font-size:32px;font-weight:800;color:var(--success);line-height:1">${stats.users.agents}</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:4px">${parseInt(stats.users.total)} total users</div>
+        </div>
       </div>
       ${pending.length ? `
       <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">⚡ NEEDS ATTENTION (${pending.length})</div>

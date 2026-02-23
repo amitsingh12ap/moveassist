@@ -22,11 +22,17 @@ exports.getAgentMoves = async (req, res) => {
     let query, params = [];
     if (req.user.role === 'admin') {
       query = `SELECT m.*, u.name as user_name, u.phone as customer_phone,
-        COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id),0) as total_boxes
+        COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id),0) as total_boxes,
+        COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id AND status='delivered'),0) as delivered_boxes,
+        COALESCE((SELECT COUNT(*) FROM furniture_items WHERE move_id=m.id),0) as total_furniture,
+        COALESCE((SELECT COUNT(*) FROM furniture_items WHERE move_id=m.id AND condition_after IS NOT NULL),0) as delivered_furniture
         FROM moves m JOIN users u ON u.id=m.user_id ORDER BY m.created_at DESC`;
     } else {
       query = `SELECT m.*, u.name as user_name, u.phone as customer_phone,
-        COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id),0) as total_boxes
+        COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id),0) as total_boxes,
+        COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id AND status='delivered'),0) as delivered_boxes,
+        COALESCE((SELECT COUNT(*) FROM furniture_items WHERE move_id=m.id),0) as total_furniture,
+        COALESCE((SELECT COUNT(*) FROM furniture_items WHERE move_id=m.id AND condition_after IS NOT NULL),0) as delivered_furniture
         FROM moves m JOIN users u ON u.id=m.user_id
         WHERE m.agent_id=$1 ORDER BY m.move_date ASC NULLS LAST`;
       params = [req.user.id];
@@ -120,5 +126,59 @@ exports.remove = async (req, res) => {
     res.json({ message: 'Move deleted' });
   } catch(err) {
     res.status(500).json({ error: 'Failed to delete move' });
+  }
+};
+
+exports.completeMove = async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Validation 1: all boxes delivered
+    const boxCheck = await db.query(
+      `SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status='delivered') as delivered FROM boxes WHERE move_id=$1`,
+      [id]
+    );
+    const { total, delivered } = boxCheck.rows[0];
+    if (parseInt(total) > 0 && parseInt(delivered) < parseInt(total)) {
+      return res.status(400).json({
+        error: `${parseInt(total) - parseInt(delivered)} box${parseInt(total)-parseInt(delivered)>1?'es':''} not yet delivered`,
+        code: 'BOXES_PENDING'
+      });
+    }
+
+    // Validation 2: all furniture has condition_after logged
+    const furnCheck = await db.query(
+      `SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE condition_after IS NOT NULL) as logged FROM furniture_items WHERE move_id=$1`,
+      [id]
+    );
+    const { total: furnTotal, logged } = furnCheck.rows[0];
+    if (parseInt(furnTotal) > 0 && parseInt(logged) < parseInt(furnTotal)) {
+      return res.status(400).json({
+        error: `${parseInt(furnTotal) - parseInt(logged)} furniture item${parseInt(furnTotal)-parseInt(logged)>1?'s':''} not marked as delivered`,
+        code: 'FURNITURE_PENDING'
+      });
+    }
+
+    // Validation 4: all furniture has a delivery (after) photo
+    const deliveryPhotoCheck = await db.query(
+      `SELECT f.id, f.name FROM furniture_items f
+       WHERE f.move_id=$1 AND f.condition_after IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM furniture_photos p WHERE p.furniture_id=f.id AND p.photo_type='after')`,
+      [id]
+    );
+    if (deliveryPhotoCheck.rows.length > 0) {
+      const names = deliveryPhotoCheck.rows.map(r => r.name).join(', ');
+      return res.status(400).json({
+        error: `Missing delivery photo for: ${names}`,
+        code: 'MISSING_DELIVERY_PHOTO'
+      });
+    }
+
+    await db.query(
+      `UPDATE moves SET status='completed', updated_at=NOW() WHERE id=$1 AND (status='in_progress' OR status='active') RETURNING *`,
+      [id]
+    );
+    res.json({ message: 'Move completed successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to complete move' });
   }
 };

@@ -2,11 +2,9 @@ const db = require('../../config/db');
 
 module.exports = async (req, res, next) => {
   try {
-    // Extract moveId from various param shapes
-    const moveId = req.params.moveId || req.params.id;
+    let resolvedMoveId = req.params.moveId || null;
 
     // For scan route — look up move via QR code
-    let resolvedMoveId = moveId;
     if (!resolvedMoveId && req.params.qrCode) {
       const boxRes = await db.query(
         'SELECT move_id FROM boxes WHERE qr_code=$1', [req.params.qrCode]
@@ -14,12 +12,21 @@ module.exports = async (req, res, next) => {
       resolvedMoveId = boxRes.rows[0]?.move_id;
     }
 
-    // For furniture/:id routes — look up move via furniture item
-    if (!resolvedMoveId && req.params.id && !req.params.moveId) {
+    // For furniture/:id and boxes/:id routes — look up move via the item
+    if (!resolvedMoveId && req.params.id) {
+      // Try furniture first
       const furnRes = await db.query(
         'SELECT move_id FROM furniture_items WHERE id=$1', [req.params.id]
       );
-      resolvedMoveId = furnRes.rows[0]?.move_id;
+      if (furnRes.rows[0]) {
+        resolvedMoveId = furnRes.rows[0].move_id;
+      } else {
+        // Try boxes
+        const boxRes = await db.query(
+          'SELECT move_id FROM boxes WHERE id=$1', [req.params.id]
+        );
+        resolvedMoveId = boxRes.rows[0]?.move_id;
+      }
     }
 
     if (!resolvedMoveId) return next(); // Can't determine move — let controller handle

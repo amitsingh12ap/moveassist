@@ -15,55 +15,67 @@ exports.getByMove = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  const { name, category, condition_before, damage_notes } = req.body;
+  const { name, category, condition_before, damage_notes, photo_url } = req.body;
   try {
     const result = await db.query(
       'INSERT INTO furniture_items (move_id, name, category, condition_before, damage_notes) VALUES ($1,$2,$3,$4,$5) RETURNING *',
       [req.params.moveId, name, category, condition_before, damage_notes]
     );
-    res.status(201).json(result.rows[0]);
+    const item = result.rows[0];
+    if (photo_url) {
+      await db.query(
+        'INSERT INTO furniture_photos (furniture_id, photo_url, photo_type) VALUES ($1,$2,$3)',
+        [item.id, photo_url, 'before']
+      );
+    }
+    res.status(201).json(item);
   } catch (err) {
     res.status(500).json({ error: 'Failed to create furniture item' });
   }
 };
 
-exports.addPhotos = async (req, res) => {
-  const { photo_type, damage_tagged, damage_description } = req.body;
+// Accept base64 photo directly (no multer)
+exports.addPhotoBase64 = async (req, res) => {
+  const { photo_url, photo_type, damage_tagged, damage_description } = req.body;
+  if (!photo_url) return res.status(400).json({ error: 'photo_url required' });
   try {
-    const photos = req.files.map(file => ({
-      furniture_id: req.params.id,
-      photo_url: file.location, // S3 URL
-      photo_type: photo_type || 'before',
-      damage_tagged: damage_tagged === 'true',
-      damage_description,
-    }));
-
-    const inserted = [];
-    for (const photo of photos) {
-      const result = await db.query(
-        `INSERT INTO furniture_photos (furniture_id, photo_url, photo_type, damage_tagged, damage_description)
-         VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-        [photo.furniture_id, photo.photo_url, photo.photo_type, photo.damage_tagged, photo.damage_description]
-      );
-      inserted.push(result.rows[0]);
-    }
-
-    res.status(201).json(inserted);
+    const result = await db.query(
+      `INSERT INTO furniture_photos (furniture_id, photo_url, photo_type, damage_tagged, damage_description)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [req.params.id, photo_url, photo_type || 'before', damage_tagged || false, damage_description || null]
+    );
+    res.status(201).json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to add photos' });
+    res.status(500).json({ error: 'Failed to add photo' });
   }
 };
 
 exports.updateConditionAfter = async (req, res) => {
-  const { condition_after, damage_notes } = req.body;
+  const { condition_after, damage_notes, photo_url } = req.body;
   try {
     const result = await db.query(
       'UPDATE furniture_items SET condition_after=$1, damage_notes=$2, updated_at=NOW() WHERE id=$3 RETURNING *',
       [condition_after, damage_notes, req.params.id]
     );
-    res.json(result.rows[0]);
+    const item = result.rows[0];
+    if (photo_url) {
+      await db.query(
+        'INSERT INTO furniture_photos (furniture_id, photo_url, photo_type) VALUES ($1,$2,$3)',
+        [item.id, photo_url, 'after']
+      );
+    }
+    res.json(item);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update condition' });
+  }
+};
+
+exports.remove = async (req, res) => {
+  try {
+    await db.query('DELETE FROM furniture_items WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Furniture item deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete item' });
   }
 };
 
