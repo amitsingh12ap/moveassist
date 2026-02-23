@@ -1419,8 +1419,11 @@ body {
       <div class="field">
         <label>Home Size</label>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="bhkGrid">
-          ${['studio','1bhk','2bhk','3bhk','4bhk'].map(b=>`
-          <button onclick="selectBHK('${b}')" id="bhk-${b}" class="chip-btn" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;background:#fff;cursor:pointer">${b.toUpperCase()}</button>`).join('')}
+          <button onclick="selectBHK('studio')" id="bhk-studio" class="chip-btn" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;background:#fff;cursor:pointer">STUDIO</button>
+          <button onclick="selectBHK('1bhk')" id="bhk-1bhk" class="chip-btn" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;background:#fff;cursor:pointer">1BHK</button>
+          <button onclick="selectBHK('2bhk')" id="bhk-2bhk" class="chip-btn" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;background:#fff;cursor:pointer">2BHK</button>
+          <button onclick="selectBHK('3bhk')" id="bhk-3bhk" class="chip-btn" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;background:#fff;cursor:pointer">3BHK</button>
+          <button onclick="selectBHK('4bhk')" id="bhk-4bhk" class="chip-btn" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-weight:600;background:#fff;cursor:pointer">4BHK</button>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
