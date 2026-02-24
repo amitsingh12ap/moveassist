@@ -3754,16 +3754,42 @@ function renderPaymentScreen(data, quote) {
     </div>`;
   }
 
-  // Agent/Admin: move active, no quote yet → submit on-site quote
-  if ((isAgent || isAdmin) && isActive && !quote) {
+  // Agent/Admin: move active → submit quote (total amount) + mark payment buttons
+  if ((isAgent || isAdmin) && isActive) {
+    // Quote submission / revision
     ctaHtml += `
-    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:14px;padding:16px;margin-bottom:16px">
-      <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px">📋 Submit On-Site Quote</div>
-      <div style="font-size:12px;color:var(--sub);margin-bottom:12px">After visiting the customer's location, submit your final estimate. The balance will be auto-calculated.</div>
-      <button onclick="openSubmitQuoteModal('${data.move_id}')" style="padding:11px 20px;background:#16a34a;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
-        📝 Submit Final Quote
+    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:14px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px">
+        ${quote ? '✏️ Revise Quote' : '📋 Submit Quote'}
+      </div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:12px">
+        ${quote ? `Current total: ₹${quote ? parseFloat(quote.total).toLocaleString('en-IN') : '—'}. Update if needed.` : 'Enter the total amount you need from the customer.'}
+      </div>
+      <button onclick="openSubmitQuoteModal('${data.move_id}', ${quote ? parseFloat(quote.total) : 0})"
+        style="padding:11px 20px;background:#16a34a;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+        ${quote ? '✏️ Update Total' : '📝 Set Total Amount'}
       </button>
     </div>`;
+
+    // Payment collection — only show after quote submitted and balance still due
+    if (quote && balanceDue > 0) {
+      const tokenSuggestion = Math.round(parseFloat(quote.total) * 0.1);
+      ctaHtml += `
+      <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:14px;padding:16px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:#b45309;margin-bottom:4px">💵 Collect Payment</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:12px">Balance due: ₹${balanceDue.toLocaleString('en-IN')}</div>
+        <div style="display:flex;gap:10px">
+          <button onclick="openAgentMarkPaymentModal('${data.move_id}', 'token', ${tokenSuggestion})"
+            style="flex:1;padding:11px 8px;background:#fef9c3;border:1.5px solid #fde68a;border-radius:10px;color:#b45309;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+            🔐 Token Received
+          </button>
+          <button onclick="openAgentMarkPaymentModal('${data.move_id}', 'full', ${balanceDue})"
+            style="flex:1;padding:11px 8px;background:#16a34a;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+            ✅ Full Payment Received
+          </button>
+        </div>
+      </div>`;
+    }
   }
 
   // ── Agent Quote detail ────────────────────────────────────────
@@ -3977,59 +4003,137 @@ async function submitBalancePay(moveId) {
   }
 }
 
-// ── MODAL: Agent submits on-site quote ────────────────────────
-function openSubmitQuoteModal(moveId) {
+// ── MODAL: Agent submits total amount needed from customer ─────
+function openSubmitQuoteModal(moveId, currentTotal = 0) {
   document.getElementById('submitQuoteContent').innerHTML = `
-  <div style="font-size:13px;color:var(--sub);margin-bottom:16px">Submit your on-site final quote. The customer's balance will be auto-updated.</div>
-  <div class="field"><label>Base Price (₹) *</label><input type="number" id="sqBase" placeholder="e.g. 8500" min="0"/></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    <div class="field"><label>Floor Charges (₹)</label><input type="number" id="sqFloor" value="0" min="0"/></div>
-    <div class="field"><label>Fragile Handling (₹)</label><input type="number" id="sqFragile" value="0" min="0"/></div>
-    <div class="field"><label>Extra Items (₹)</label><input type="number" id="sqExtra" value="0" min="0"/></div>
+  <div style="font-size:13px;color:var(--sub);margin-bottom:16px">
+    Enter the total amount you need from the customer. This becomes the confirmed price.
+  </div>
+  <div class="field">
+    <label style="font-size:14px;font-weight:700">Total Amount (₹) *</label>
+    <input type="number" id="sqTotal" placeholder="e.g. 12000" min="1" inputmode="decimal"
+      value="${currentTotal > 0 ? currentTotal : ''}"
+      style="font-size:22px;font-weight:800;padding:14px;border:2px solid var(--accent);border-radius:12px;text-align:center"/>
+  </div>
+  <div style="margin-bottom:14px">
+    <button onclick="document.getElementById('sqBreakdown').style.display=document.getElementById('sqBreakdown').style.display==='none'?'block':'none'"
+      style="padding:8px 14px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--sub)">
+      + Add Itemised Breakdown (optional)
+    </button>
+  </div>
+  <div id="sqBreakdown" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="field"><label>Base Price (₹)</label><input type="number" id="sqBase" value="0" min="0"/></div>
+      <div class="field"><label>Floor Charges (₹)</label><input type="number" id="sqFloor" value="0" min="0"/></div>
+      <div class="field"><label>Fragile (₹)</label><input type="number" id="sqFragile" value="0" min="0"/></div>
+      <div class="field"><label>Extra Items (₹)</label><input type="number" id="sqExtra" value="0" min="0"/></div>
+    </div>
     <div class="field"><label>Discount (₹)</label><input type="number" id="sqDiscount" value="0" min="0"/></div>
   </div>
-  <div class="field"><label>Notes to Customer</label><textarea id="sqNotes" placeholder="e.g. Found 2 extra heavy items on-site..." style="height:80px"></textarea></div>
-  <div id="sqPreview" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin:12px 0;text-align:center">
-    <div style="font-size:11px;color:var(--sub);margin-bottom:4px">FINAL TOTAL (incl. GST)</div>
-    <div id="sqTotal" style="font-size:28px;font-weight:800;color:#15803d">—</div>
+  <div class="field"><label>Notes (optional)</label>
+    <textarea id="sqNotes" placeholder="e.g. Found 2 extra heavy items on-site..." style="height:70px"></textarea>
   </div>
-  <button onclick="previewQuote()" style="width:100%;padding:10px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px">🔢 Preview Total</button>
-  <button onclick="submitAgentQuote('${moveId}')" id="sqBtn" class="btn btn-primary" style="background:#16a34a;border-color:#16a34a">Submit Quote to Customer</button>`;
+  <button onclick="submitAgentQuote('${moveId}')" id="sqBtn"
+    style="width:100%;padding:14px;background:#16a34a;border:none;border-radius:12px;color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer">
+    ✅ Confirm Total
+  </button>`;
   openModal('submitQuoteModal');
 }
 
-function previewQuote() {
-  const base     = parseFloat(document.getElementById('sqBase').value) || 0;
-  const floor    = parseFloat(document.getElementById('sqFloor').value) || 0;
-  const fragile  = parseFloat(document.getElementById('sqFragile').value) || 0;
-  const extra    = parseFloat(document.getElementById('sqExtra').value) || 0;
-  const discount = parseFloat(document.getElementById('sqDiscount').value) || 0;
-  const subtotal = base + floor + fragile + extra - discount;
-  const total    = subtotal + Math.round(subtotal * 0.18);
-  document.getElementById('sqPreview').style.display = 'block';
-  document.getElementById('sqTotal').textContent = `₹${total.toLocaleString('en-IN')}`;
-}
+function previewQuote() { /* legacy — no-op */ }
 
 async function submitAgentQuote(moveId) {
-  const base = parseFloat(document.getElementById('sqBase').value);
-  if (!base || base <= 0) { toast('Base price is required', 'error'); return; }
+  const total = parseFloat(document.getElementById('sqTotal').value);
+  if (!total || total <= 0) { toast('Enter the total amount', 'error'); return; }
   const btn = document.getElementById('sqBtn');
-  btn.disabled = true; btn.textContent = 'Submitting...';
+  btn.disabled = true; btn.textContent = 'Saving...';
   try {
     const d = await api('POST', `/api/quotes/move/${moveId}`, {
-      base_price:     base,
-      floor_charge:   parseFloat(document.getElementById('sqFloor').value)   || 0,
-      fragile_charge: parseFloat(document.getElementById('sqFragile').value) || 0,
-      extra_items:    parseFloat(document.getElementById('sqExtra').value)   || 0,
-      discount:       parseFloat(document.getElementById('sqDiscount').value)|| 0,
+      total_amount:   total,
+      base_price:     parseFloat(document.getElementById('sqBase')?.value)    || 0,
+      floor_charge:   parseFloat(document.getElementById('sqFloor')?.value)   || 0,
+      fragile_charge: parseFloat(document.getElementById('sqFragile')?.value) || 0,
+      extra_items:    parseFloat(document.getElementById('sqExtra')?.value)   || 0,
+      discount:       parseFloat(document.getElementById('sqDiscount')?.value)|| 0,
       notes:          document.getElementById('sqNotes').value || null,
     });
     closeModal('submitQuoteModal');
-    toast(`✅ Quote submitted! Final: ₹${d.total.toLocaleString('en-IN')} · Balance due: ₹${d.balance_due.toLocaleString('en-IN')}`, 'success');
+    toast(`✅ Total confirmed: ₹${d.total.toLocaleString('en-IN')}. Balance due: ₹${d.balance_due.toLocaleString('en-IN')}`, 'success');
     openPaymentScreen(moveId);
   } catch(e) {
     toast(e.message, 'error');
-    btn.disabled = false; btn.textContent = 'Submit Quote to Customer';
+    btn.disabled = false; btn.textContent = 'Confirm Total';
+  }
+}
+
+// ── MODAL: Agent marks payment received from customer ─────────
+function openAgentMarkPaymentModal(moveId, paymentType, suggestedAmount) {
+  const isToken = paymentType === 'token';
+  const label   = isToken ? '🔐 Token Received' : '✅ Full Payment Received';
+  const color   = isToken ? '#b45309' : '#15803d';
+  const bg      = isToken ? '#fffbeb' : '#f0fdf4';
+  const border  = isToken ? '#fde68a' : '#bbf7d0';
+
+  document.getElementById('submitQuoteContent').innerHTML = `
+  <div style="background:${bg};border:1.5px solid ${border};border-radius:12px;padding:14px;margin-bottom:16px;text-align:center">
+    <div style="font-size:24px;margin-bottom:4px">${isToken ? '🔐' : '✅'}</div>
+    <div style="font-weight:800;font-size:15px;color:${color}">${label}</div>
+    <div style="font-size:12px;color:var(--sub);margin-top:4px">
+      ${isToken ? 'Mark partial/token amount collected from customer' : 'Mark full outstanding balance collected from customer'}
+    </div>
+  </div>
+  <div class="field">
+    <label style="font-weight:700">Amount Received (₹) *</label>
+    <input type="number" id="ampAmount" value="${suggestedAmount || ''}" min="1" inputmode="decimal"
+      style="font-size:20px;font-weight:700;padding:12px;border:2px solid ${border};border-radius:12px;text-align:center"/>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="field">
+      <label>Payment Mode</label>
+      <select id="ampMode" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;width:100%">
+        <option value="cash">Cash</option>
+        <option value="upi">UPI</option>
+        <option value="bank_transfer">Bank Transfer</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Reference / UPI ID</label>
+      <input type="text" id="ampRef" placeholder="optional"/>
+    </div>
+  </div>
+  <div class="field"><label>Notes (optional)</label>
+    <input type="text" id="ampNotes" placeholder="Any remarks..."/>
+  </div>
+  <button onclick="submitAgentMarkPayment('${moveId}','${paymentType}')" id="ampBtn"
+    style="width:100%;padding:14px;background:${color};border:none;border-radius:12px;color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer">
+    ${label}
+  </button>`;
+  openModal('submitQuoteModal');
+}
+
+async function submitAgentMarkPayment(moveId, paymentType) {
+  const amount = parseFloat(document.getElementById('ampAmount').value);
+  if (!amount || amount <= 0) { toast('Enter amount received', 'error'); return; }
+  const btn = document.getElementById('ampBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const d = await api('POST', `/api/quotes/move/${moveId}/mark-payment`, {
+      payment_type:    paymentType,
+      amount:          amount,
+      payment_mode:    document.getElementById('ampMode').value,
+      transaction_ref: document.getElementById('ampRef').value || null,
+      notes:           document.getElementById('ampNotes').value || null,
+    });
+    closeModal('submitQuoteModal');
+    const msg = paymentType === 'full'
+      ? `✅ Full payment of ₹${amount.toLocaleString('en-IN')} recorded. Move is now in progress!`
+      : `🔐 Token of ₹${amount.toLocaleString('en-IN')} recorded.`;
+    toast(msg, 'success');
+    openPaymentScreen(moveId);
+  } catch(e) {
+    toast(e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = paymentType === 'full' ? '✅ Full Payment Received' : '🔐 Token Received';
   }
 }
 
