@@ -3593,18 +3593,19 @@ async function openPaymentScreen(moveId) {
   const content = document.getElementById('paymentContent');
   content.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
   try {
-    const [data, quote] = await Promise.all([
+    const [data, quote, plan] = await Promise.all([
       api('GET', `/api/payments/move/${moveId}`),
       api('GET', `/api/quotes/move/${moveId}`).catch(() => null),
+      api('GET', `/api/plans/move/${moveId}`).catch(() => null),
     ]);
     currentMove = { ...(currentMove||{}), id: moveId, ...data };
-    renderPaymentScreen(data, quote);
+    renderPaymentScreen(data, quote, plan);
   } catch(e) {
     content.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
   }
 }
 
-function renderPaymentScreen(data, quote) {
+function renderPaymentScreen(data, quote, plan) {
   const content = document.getElementById('paymentContent');
   const status       = data.move_status || '';
   const isPending    = ['payment_pending','created'].includes(status);
@@ -3819,6 +3820,81 @@ function renderPaymentScreen(data, quote) {
     ${quote.notes?`<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;font-size:13px;color:var(--sub)">💬 ${quote.notes}</div>`:''}
   </div>` : '';
 
+  // ── Move Plan card ────────────────────────────────────────────
+  // Customer sees published plan. Agent sees it + edit button.
+  const PACKAGE_LABELS = { basic:'🟡 Basic', standard:'🔵 Standard', premium:'⭐ Premium' };
+  const SLOT_LABELS    = { morning:'🌅 Morning (7–11am)', afternoon:'☀️ Afternoon (12–4pm)', evening:'🌆 Evening (5–8pm)' };
+  const VEHICLE_ICONS  = { 'mini truck':'🚐', 'tempo':'🚛', '14ft truck':'🚚', '17ft truck':'🚚', 'container':'📦' };
+
+  let planHtml = '';
+  if (plan) {
+    const materials = Array.isArray(plan.packing_materials) ? plan.packing_materials
+      : (plan.packing_materials ? JSON.parse(plan.packing_materials) : []);
+
+    planHtml = `
+    <div style="background:#fff;border:1.5px solid #a5b4fc;border-radius:14px;padding:18px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:0.5px">📋 Your Move Plan</div>
+        ${!plan.published ? `<span style="font-size:10px;padding:3px 8px;background:#fef3c7;color:#b45309;border-radius:99px;font-weight:700">Draft</span>` : ''}
+        ${(isAgent||isAdmin) ? `<button onclick="openMovePlanModal('${data.move_id}')" style="font-size:12px;padding:5px 12px;background:#ede9fe;border:none;border-radius:8px;color:#4f46e5;font-family:inherit;font-weight:700;cursor:pointer">✏️ Edit</button>` : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px">
+          <div style="font-size:10px;color:var(--sub);margin-bottom:3px">PACKAGE</div>
+          <div style="font-size:14px;font-weight:700">${PACKAGE_LABELS[plan.package_type] || plan.package_type}</div>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px">
+          <div style="font-size:10px;color:var(--sub);margin-bottom:3px">VEHICLE</div>
+          <div style="font-size:14px;font-weight:700">${plan.vehicle_type ? `${VEHICLE_ICONS[plan.vehicle_type]||'🚚'} ${plan.vehicle_type}` : '—'}</div>
+          ${plan.vehicle_number ? `<div style="font-size:11px;color:var(--sub);margin-top:2px">${plan.vehicle_number}</div>` : ''}
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px">
+          <div style="font-size:10px;color:var(--sub);margin-bottom:3px">CREW</div>
+          <div style="font-size:14px;font-weight:700">👷 ${plan.movers_count} Movers</div>
+          ${plan.team_lead_name ? `<div style="font-size:11px;color:var(--sub);margin-top:2px">Lead: ${plan.team_lead_name}${plan.team_lead_phone ? ` · ${plan.team_lead_phone}` : ''}</div>` : ''}
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px">
+          <div style="font-size:10px;color:var(--sub);margin-bottom:3px">PICKUP</div>
+          <div style="font-size:13px;font-weight:700">${plan.pickup_at ? new Date(plan.pickup_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '—'}</div>
+          ${plan.pickup_slot ? `<div style="font-size:11px;color:var(--sub);margin-top:2px">${SLOT_LABELS[plan.pickup_slot]||plan.pickup_slot}</div>` : ''}
+        </div>
+      </div>
+      ${plan.packing_start_at ? `
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:10px;font-size:13px">
+        <span>📦</span>
+        <div><span style="font-weight:600">Packing starts:</span> ${new Date(plan.packing_start_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>` : ''}
+      ${plan.estimated_delivery ? `
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;margin-bottom:10px;font-size:13px">
+        <span>🏠</span>
+        <div><span style="font-weight:600">Est. delivery:</span> ${new Date(plan.estimated_delivery).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+      </div>` : ''}
+      ${materials.length ? `
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--sub);font-weight:700;margin-bottom:6px">PACKING MATERIALS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${materials.map(m => `<span style="padding:4px 10px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:99px;font-size:12px;font-weight:500">${typeof m==='object'?`${m.item}${m.qty?' ×'+m.qty:''}`:m}</span>`).join('')}
+        </div>
+      </div>` : ''}
+      ${plan.special_instructions ? `
+      <div style="padding:10px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;font-size:13px;color:#b45309">
+        <span style="font-weight:700">📌 Note:</span> ${plan.special_instructions}
+      </div>` : ''}
+    </div>`;
+  } else if (isAgent || isAdmin) {
+    // Agent hasn't filled the plan yet — show prompt
+    planHtml = `
+    <div style="background:#f5f3ff;border:1.5px dashed #a5b4fc;border-radius:14px;padding:18px;margin-bottom:16px;text-align:center">
+      <div style="font-size:28px;margin-bottom:8px">📋</div>
+      <div style="font-weight:700;color:#4f46e5;margin-bottom:6px">Add Move Plan</div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:14px">Fill in vehicle, crew, schedule and packing details. Customer sees this once you publish.</div>
+      <button onclick="openMovePlanModal('${data.move_id}')"
+        style="padding:11px 20px;background:#4f46e5;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+        📋 Create Move Plan
+      </button>
+    </div>`;
+  }
+
   // ── Payment history ───────────────────────────────────────────
   const historyHtml = data.payments && data.payments.length ? `
   <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:18px">
@@ -3851,6 +3927,7 @@ function renderPaymentScreen(data, quote) {
     ${summaryHtml}
     ${ctaHtml}
     ${quoteHtml}
+    ${planHtml}
     ${historyHtml}
   </div>`;
 }
@@ -4134,6 +4211,154 @@ async function submitAgentMarkPayment(moveId, paymentType) {
     toast(e.message, 'error');
     btn.disabled = false;
     btn.textContent = paymentType === 'full' ? '✅ Full Payment Received' : '🔐 Token Received';
+  }
+}
+
+// ── MODAL: Agent fills / edits move plan ──────────────────────
+function openMovePlanModal(moveId, existing) {
+  const p = existing || {};
+  const materials = Array.isArray(p.packing_materials) ? p.packing_materials
+    : (p.packing_materials ? JSON.parse(p.packing_materials) : []);
+  const matString = materials.map(m => typeof m === 'object' ? `${m.item}${m.qty?' x'+m.qty:''}` : m).join(', ');
+
+  document.getElementById('submitQuoteContent').innerHTML = `
+  <div style="font-size:13px;color:var(--sub);margin-bottom:16px">Fill in the move plan details. Save as draft or publish directly to the customer.</div>
+
+  <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Package & Vehicle</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="field" style="margin:0">
+      <label>Package Type</label>
+      <select id="mpPackage">
+        <option value="basic" ${p.package_type==='basic'?'selected':''}>🟡 Basic</option>
+        <option value="standard" ${!p.package_type||p.package_type==='standard'?'selected':''}>🔵 Standard</option>
+        <option value="premium" ${p.package_type==='premium'?'selected':''}>⭐ Premium</option>
+      </select>
+    </div>
+    <div class="field" style="margin:0">
+      <label>Vehicle Type</label>
+      <select id="mpVehicle">
+        <option value="">Select...</option>
+        <option value="mini truck" ${p.vehicle_type==='mini truck'?'selected':''}>🚐 Mini Truck</option>
+        <option value="tempo" ${p.vehicle_type==='tempo'?'selected':''}>🚛 Tempo</option>
+        <option value="14ft truck" ${p.vehicle_type==='14ft truck'?'selected':''}>🚚 14ft Truck</option>
+        <option value="17ft truck" ${p.vehicle_type==='17ft truck'?'selected':''}>🚚 17ft Truck</option>
+        <option value="container" ${p.vehicle_type==='container'?'selected':''}>📦 Container</option>
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label>Vehicle Number</label>
+    <input type="text" id="mpVehicleNum" placeholder="e.g. MH01AB1234" value="${p.vehicle_number||''}"/>
+  </div>
+
+  <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Crew</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="field" style="margin:0">
+      <label>No. of Movers</label>
+      <input type="number" id="mpMovers" min="1" max="20" value="${p.movers_count||2}"/>
+    </div>
+    <div class="field" style="margin:0">
+      <label>Team Lead Name</label>
+      <input type="text" id="mpLeadName" placeholder="e.g. Raju Sharma" value="${p.team_lead_name||''}"/>
+    </div>
+  </div>
+  <div class="field">
+    <label>Team Lead Phone</label>
+    <input type="tel" id="mpLeadPhone" placeholder="e.g. 9876543210" value="${p.team_lead_phone||''}"/>
+  </div>
+
+  <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Schedule</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="field" style="margin:0">
+      <label>Packing Start</label>
+      <input type="datetime-local" id="mpPackingAt" value="${p.packing_start_at ? p.packing_start_at.slice(0,16) : ''}"/>
+    </div>
+    <div class="field" style="margin:0">
+      <label>Pickup Date & Time</label>
+      <input type="datetime-local" id="mpPickupAt" value="${p.pickup_at ? p.pickup_at.slice(0,16) : ''}"/>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="field" style="margin:0">
+      <label>Pickup Time Slot</label>
+      <select id="mpSlot">
+        <option value="">—</option>
+        <option value="morning"   ${p.pickup_slot==='morning'?'selected':''}>🌅 Morning (7–11am)</option>
+        <option value="afternoon" ${p.pickup_slot==='afternoon'?'selected':''}>☀️ Afternoon (12–4pm)</option>
+        <option value="evening"   ${p.pickup_slot==='evening'?'selected':''}>🌆 Evening (5–8pm)</option>
+      </select>
+    </div>
+    <div class="field" style="margin:0">
+      <label>Est. Delivery Date</label>
+      <input type="date" id="mpDelivery" value="${p.estimated_delivery ? p.estimated_delivery.slice(0,10) : ''}"/>
+    </div>
+  </div>
+
+  <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Packing & Notes</div>
+  <div class="field">
+    <label>Packing Materials (comma separated)</label>
+    <input type="text" id="mpMaterials" placeholder="e.g. 20 boxes, bubble wrap x5, stretch film" value="${matString}"/>
+  </div>
+  <div class="field">
+    <label>Special Instructions (visible to customer)</label>
+    <textarea id="mpInstructions" placeholder="e.g. Customer has a piano, needs extra padding...">${p.special_instructions||''}</textarea>
+  </div>
+  <div class="field">
+    <label>Internal Notes (agent only)</label>
+    <textarea id="mpInternal" style="height:60px" placeholder="e.g. Building has no service lift...">${p.internal_notes||''}</textarea>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+    <button onclick="saveMovePlan('${moveId}', false)" id="mpSaveBtn"
+      style="padding:13px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:12px;color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+      💾 Save Draft
+    </button>
+    <button onclick="saveMovePlan('${moveId}', true)" id="mpPublishBtn"
+      style="padding:13px;background:#4f46e5;border:none;border-radius:12px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+      🚀 Publish to Customer
+    </button>
+  </div>`;
+  openModal('submitQuoteModal');
+}
+
+function parseMaterials(str) {
+  if (!str || !str.trim()) return [];
+  return str.split(',').map(s => s.trim()).filter(Boolean).map(s => {
+    // detect "item x qty" or "qty item" patterns
+    const xMatch = s.match(/^(.+?)\s+[xX×]\s*(\d+)$/);
+    const nMatch = s.match(/^(\d+)\s+(.+)$/);
+    if (xMatch) return { item: xMatch[1].trim(), qty: parseInt(xMatch[2]) };
+    if (nMatch) return { item: nMatch[2].trim(), qty: parseInt(nMatch[1]) };
+    return { item: s };
+  });
+}
+
+async function saveMovePlan(moveId, publish) {
+  const btn = document.getElementById(publish ? 'mpPublishBtn' : 'mpSaveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = publish ? 'Publishing...' : 'Saving...'; }
+  try {
+    await api('POST', `/api/plans/move/${moveId}`, {
+      package_type:         document.getElementById('mpPackage').value,
+      vehicle_type:         document.getElementById('mpVehicle').value || null,
+      vehicle_number:       document.getElementById('mpVehicleNum').value || null,
+      movers_count:         parseInt(document.getElementById('mpMovers').value) || 2,
+      team_lead_name:       document.getElementById('mpLeadName').value || null,
+      team_lead_phone:      document.getElementById('mpLeadPhone').value || null,
+      packing_materials:    parseMaterials(document.getElementById('mpMaterials').value),
+      packing_start_at:     document.getElementById('mpPackingAt').value || null,
+      pickup_at:            document.getElementById('mpPickupAt').value || null,
+      pickup_slot:          document.getElementById('mpSlot').value || null,
+      estimated_delivery:   document.getElementById('mpDelivery').value || null,
+      special_instructions: document.getElementById('mpInstructions').value || null,
+      internal_notes:       document.getElementById('mpInternal').value || null,
+      publish,
+    });
+    closeModal('submitQuoteModal');
+    toast(publish ? '📋 Move plan published to customer!' : '💾 Move plan saved as draft', 'success');
+    openPaymentScreen(moveId);
+  } catch(e) {
+    toast(e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = publish ? '🚀 Publish to Customer' : '💾 Save Draft'; }
   }
 }
 
