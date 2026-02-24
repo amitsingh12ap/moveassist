@@ -144,7 +144,7 @@ exports.getPendingPayments = async (req, res) => {
       JOIN moves m ON m.id = p.move_id
       JOIN users u ON u.id = p.user_id
       LEFT JOIN users rb ON rb.id = p.recorded_by
-      WHERE p.status = 'pending'
+      WHERE p.status IN ('pending','under_verification')
       ORDER BY p.created_at ASC
     `);
     res.json(result.rows);

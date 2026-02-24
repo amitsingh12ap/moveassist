@@ -18,6 +18,7 @@ const disputesRoutes = require('./routes/disputes');
 const ratingsRoutes = require('./routes/ratings');
 const documentsRoutes = require('./routes/documents');
 const pricingRoutes = require('./routes/pricing');
+const quotesRoutes = require('./routes/quotes');
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/disputes', disputesRoutes);
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/pricing', pricingRoutes);
+app.use('/api/quotes', quotesRoutes);
 
 // Serve PWA static files (manifest, sw, icons, index)
 app.use(express.static(path.join(__dirname, '../public')));

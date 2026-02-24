@@ -2057,9 +2057,9 @@ async function loadMoves() {
           </div>
           ${dateStr ? `<span class="move-card-date">📅 ${dateStr}</span>` : ''}
         </div>
-        ${isPending ? `<div style="margin-top:10px;padding:9px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#b45309;display:flex;justify-content:space-between;align-items:center">
-          <span>⚠️ Payment required to activate</span>
-          <span style="font-weight:700;color:var(--accent)">Pay Now →</span>
+        ${isPending ? `<div onclick="openPaymentScreen('${m.id}')" style="margin-top:10px;padding:9px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#b45309;display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+          <span>${parseFloat(m.estimated_cost||0) > 0 ? `🔐 Pay ₹${Math.round(parseFloat(m.estimated_cost)*0.1).toLocaleString('en-IN')} token to confirm` : '⏳ Awaiting price confirmation'}</span>
+          <span style="font-weight:700;color:var(--accent)">${parseFloat(m.estimated_cost||0) > 0 ? 'Pay Now →' : 'View →'}</span>
         </div>` : ''}
         ${isVerifying ? `<div style="margin-top:10px;padding:9px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:12px;color:#1d4ed8">
           🔍 Payment under verification by admin
@@ -2126,10 +2126,10 @@ async function openMove(id) {
 
           ${isPending ? `
           <div class="payment-gate" style="margin-bottom:16px">
-            <div class="gate-icon">💳</div>
-            <div class="gate-title">Complete Payment to Activate</div>
-            <div class="gate-sub">Box tracking, QR codes, and agent assignment unlock after payment.</div>
-            <button class="btn btn-primary" onclick="openPaymentScreen('${m.id}')" style="max-width:240px;margin:0 auto">View Payment Details →</button>
+            <div class="gate-icon">${parseFloat(m.estimated_cost||0) > 0 ? '🔐' : '⏳'}</div>
+            <div class="gate-title">${parseFloat(m.estimated_cost||0) > 0 ? `Pay ₹${Math.round(parseFloat(m.estimated_cost)*0.1).toLocaleString('en-IN')} Token to Confirm Booking` : 'Awaiting Price Confirmation'}</div>
+            <div class="gate-sub">${parseFloat(m.estimated_cost||0) > 0 ? `Total: ₹${parseFloat(m.estimated_cost).toLocaleString('en-IN')} · Token is 10% to activate your booking` : 'Admin will confirm your price shortly. You\'ll be notified.'}</div>
+            <button class="btn btn-primary" onclick="openPaymentScreen('${m.id}')" style="max-width:240px;margin:0 auto">${parseFloat(m.estimated_cost||0) > 0 ? 'Pay Token Now →' : 'View Payment Details →'}</button>
           </div>` : ''}
         </div>
 
@@ -3398,112 +3398,9 @@ function isActive(move) {
   return ['active', 'in_progress', 'completed'].includes(move.status);
 }
 
-async function openPaymentScreen(moveId) {
-  showScreen('payment');
-  setTopbar('payment');
-  const content = document.getElementById('paymentContent');
-  content.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
-  try {
-    const data = await api('GET', `/api/payments/move/${moveId}`);
-    currentMove = { ...currentMove, id: moveId, ...data };
-    renderPaymentScreen(data);
-  } catch(e) {
-    content.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
-  }
-}
+// ── Legacy payment screen removed — see updated openPaymentScreen / renderPaymentScreen below ──
 
-function renderPaymentScreen(data) {
-  const content = document.getElementById('paymentContent');
-  const isPending = ['payment_pending', 'created'].includes(data.move_status);
-  const isVerifying = data.move_status === 'payment_under_verification';
-  const isActivated = isActive({ status: data.move_status });
-  const amtTotal = parseFloat(data.amount_total || 0);
-  const amtPaid = parseFloat(data.amount_paid || 0);
-  const amtDue = Math.max(0, amtTotal - amtPaid);
 
-  // Status indicator
-  const s = STATUS_LABELS[data.move_status] || STATUS_LABELS['payment_pending'];
-  const stepIdx = TIMELINE_STEPS.findIndex(t => t.key === data.move_status);
-
-  const timelineHtml = TIMELINE_STEPS.map((step, i) => {
-    const done = i < stepIdx;
-    const cur = i === stepIdx;
-    return `<div class="timeline-item">
-      <div class="timeline-dot ${done ? 'done' : cur ? 'current' : ''}"></div>
-      <div class="timeline-label" style="color:${cur ? 'var(--text)' : done ? 'var(--sub)' : 'var(--dim)'}">${step.label}</div>
-      <div class="timeline-sub">${step.sub}</div>
-    </div>`;
-  }).join('');
-
-  // Invoice rows
-  const pricing = data.pricing;
-  const invoiceHtml = pricing ? `
-    <div class="invoice-row"><span>Base Price</span><span>₹${pricing.base_price?.toFixed(2)}</span></div>
-    <div class="invoice-row"><span>GST (${pricing.tax_percent}%)</span><span>₹${(pricing.total - pricing.base_price - (pricing.discount||0)).toFixed(2)}</span></div>
-    ${pricing.discount ? `<div class="invoice-row"><span>Discount</span><span style="color:var(--success)">-₹${pricing.discount.toFixed(2)}</span></div>` : ''}
-    <div class="invoice-row total"><span>Total</span><span>₹${pricing.total?.toFixed(2)}</span></div>
-    ${amtPaid > 0 ? `<div class="invoice-row"><span style="color:var(--success)">Paid</span><span style="color:var(--success)">₹${amtPaid.toFixed(2)}</span></div>` : ''}
-    ${amtDue > 0 ? `<div class="invoice-row"><span style="color:var(--warn);font-weight:700">Due</span><span style="color:var(--warn);font-weight:700">₹${amtDue.toFixed(2)}</span></div>` : ''}
-  ` : '<div style="color:var(--dim);font-size:13px;padding:8px 0">Pricing not yet configured</div>';
-
-  content.innerHTML = `
-    <!-- Status badge -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-      <span style="font-size:28px">${s.icon}</span>
-      <div>
-        <div style="font-size:11px;color:var(--sub);font-weight:600;letter-spacing:0.5px">MOVE STATUS</div>
-        <div style="font-size:17px;font-weight:700;color:${s.color}">${s.label}</div>
-      </div>
-      ${data.invoice_number ? `<div style="margin-left:auto;font-size:11px;color:var(--dim);">#${data.invoice_number}</div>` : ''}
-    </div>
-
-    ${isPending ? `
-    <!-- Payment Gate Banner -->
-    <div class="payment-gate">
-      <div class="gate-icon">🚫</div>
-      <div class="gate-title">Move Not Active Yet</div>
-      <div class="gate-sub">To activate your move and begin tracking, please complete payment.<br>QR codes, box tracking, and agent assignment will unlock after payment.</div>
-      ${amtTotal > 0
-        ? `<button class="btn btn-primary" onclick="openPayModal('${currentMove.id}', ${amtDue})" style="max-width:240px;margin:0 auto">💳 Pay ₹${amtDue.toFixed(2)} Now</button>`
-        : `<button class="btn btn-primary" onclick="openPricingSetup('${currentMove.id}')" style="max-width:240px;margin:0 auto">Set Move Price & Pay</button>`}
-    </div>` : ''}
-
-    ${isVerifying ? `
-    <div class="card" style="border-color:#a78bfa;text-align:center;padding:20px;margin-bottom:16px">
-      <div style="font-size:36px;margin-bottom:8px">🔍</div>
-      <div style="font-weight:700;color:#a78bfa;margin-bottom:4px">Payment Under Verification</div>
-      <div style="font-size:13px;color:var(--sub)">Our team is reviewing your payment. You'll be notified once the move is activated.</div>
-    </div>` : ''}
-
-    ${isActivated ? `
-    <div class="card" style="border-color:var(--success);text-align:center;padding:20px;margin-bottom:16px">
-      <div style="font-size:36px;margin-bottom:8px">🎉</div>
-      <div style="font-weight:700;color:var(--success);margin-bottom:4px">Your move is now active!</div>
-      <div style="font-size:13px;color:var(--sub)">Our team will coordinate with you. All features are unlocked.</div>
-    </div>` : ''}
-
-    <!-- Invoice -->
-    <div class="card" style="margin-bottom:12px">
-      <div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:12px;letter-spacing:0.5px">INVOICE</div>
-      ${invoiceHtml}
-    </div>
-
-    <!-- Action buttons -->
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-      ${isPending && amtTotal > 0 ? `
-        <button class="btn btn-primary" onclick="openPayModal('${currentMove.id}', ${amtDue})">💳 Pay Now</button>
-        <button class="btn btn-secondary" onclick="openCashModal('${currentMove.id}')">💵 Cash / Offline Payment</button>
-      ` : ''}
-      <button class="btn btn-secondary" onclick="openMove('${currentMove.id}')">← Back to Move</button>
-    </div>
-
-    <!-- Timeline -->
-    <div class="card">
-      <div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:16px;letter-spacing:0.5px">MOVE JOURNEY</div>
-      <div class="timeline">${timelineHtml}</div>
-    </div>
-  `;
-}
 
 // Open pay-now modal
 function openPayModal(moveId, amtDue) {
@@ -3680,6 +3577,483 @@ async function generateReport(moveId) {
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// PAYMENT FLOW  (6-step):
+//  1. Admin sets confirmed price  → customer notified
+//  2. Customer pays 10% token     → admin verifies
+//  3. Token verified              → move ACTIVE, agent assigned
+//  4. Agent on-site               → submits final quote
+//  5. Customer pays balance       → admin verifies
+//  6. Balance verified            → move IN_PROGRESS
+// ══════════════════════════════════════════════════════════════
+
+async function openPaymentScreen(moveId) {
+  showScreen('payment');
+  setTopbar('payment');
+  const content = document.getElementById('paymentContent');
+  content.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+  try {
+    const [data, quote] = await Promise.all([
+      api('GET', `/api/payments/move/${moveId}`),
+      api('GET', `/api/quotes/move/${moveId}`).catch(() => null),
+    ]);
+    currentMove = { ...(currentMove||{}), id: moveId, ...data };
+    renderPaymentScreen(data, quote);
+  } catch(e) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+function renderPaymentScreen(data, quote) {
+  const content = document.getElementById('paymentContent');
+  const status       = data.move_status || '';
+  const isPending    = ['payment_pending','created'].includes(status);
+  const isVerifying  = status === 'payment_under_verification';
+  const isActive     = ['active','in_progress','completed'].includes(status);
+  const isCustomer   = user?.role === 'customer';
+  const isAgent      = user?.role === 'agent';
+  const isAdmin      = user?.role === 'admin';
+  const amtTotal     = parseFloat(data.amount_total || 0);
+  const amtPaid      = parseFloat(data.amount_paid  || 0);
+  const tokenAmt     = data.token_amount ? parseFloat(data.token_amount) : Math.round(amtTotal * 0.10);
+  const priceIsSet   = amtTotal > 0;
+
+  // ── Step indicator ───────────────────────────────────────────
+  const steps = [
+    { key:'price_set',   label:'Price Set',       done: priceIsSet },
+    { key:'token',       label:'Token Paid',       done: !!data.token_paid },
+    { key:'active',      label:'Move Active',      done: isActive },
+    { key:'quote',       label:'Final Quote',      done: !!quote },
+    { key:'balance',     label:'Balance Paid',     done: status === 'in_progress' || status === 'completed' },
+    { key:'inprogress',  label:'In Progress',      done: status === 'in_progress' || status === 'completed' },
+  ];
+  const stepHtml = `
+  <div style="display:flex;gap:0;margin-bottom:24px;overflow-x:auto;padding-bottom:4px">
+    ${steps.map((s,i) => `
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:60px">
+      <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;
+        background:${s.done?'var(--accent)':'#e2e8f0'};color:${s.done?'#fff':'#94a3b8'}">
+        ${s.done?'✓':(i+1)}
+      </div>
+      ${i<steps.length-1?`<div style="position:relative;top:-14px;left:50%;width:100%;height:2px;background:${s.done?'var(--accent)':'#e2e8f0'};z-index:-1"></div>`:''}
+      <div style="font-size:10px;color:${s.done?'var(--accent)':'#94a3b8'};margin-top:4px;text-align:center;font-weight:${s.done?'700':'400'}">${s.label}</div>
+    </div>`).join('')}
+  </div>`;
+
+  // ── Amount summary card ──────────────────────────────────────
+  const quotedTotal = quote ? parseFloat(quote.total) : 0;
+  const finalTotal  = quotedTotal || amtTotal;
+  const balanceDue  = Math.max(0, finalTotal - amtPaid);
+
+  const summaryHtml = `
+  <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:16px">
+    <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">💰 Payment Summary</div>
+    ${priceIsSet ? `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
+      <span style="font-size:13px;color:var(--sub)">Confirmed Price</span>
+      <span style="font-size:14px;font-weight:600">₹${amtTotal.toLocaleString('en-IN')}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
+      <span style="font-size:13px;color:var(--sub)">Token (10%)</span>
+      <span style="font-size:14px;font-weight:600;color:var(--accent)">₹${tokenAmt.toLocaleString('en-IN')}</span>
+    </div>` : `<div style="padding:12px 0;color:var(--sub);font-size:13px">⏳ Awaiting price confirmation from admin</div>`}
+    ${quotedTotal > 0 ? `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
+      <span style="font-size:13px;color:var(--sub)">Agent's Final Price</span>
+      <span style="font-size:14px;font-weight:600;color:#7c3aed">₹${quotedTotal.toLocaleString('en-IN')}</span>
+    </div>` : ''}
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
+      <span style="font-size:13px;color:var(--sub)">Amount Paid</span>
+      <span style="font-size:14px;font-weight:700;color:var(--success)">₹${amtPaid.toLocaleString('en-IN')}</span>
+    </div>
+    ${balanceDue > 0 ? `
+    <div style="display:flex;justify-content:space-between;padding:10px 0">
+      <span style="font-size:14px;font-weight:700">Balance Due</span>
+      <span style="font-size:18px;font-weight:800;color:${status==='in_progress'||status==='completed'?'var(--success)':'var(--error)'}">₹${balanceDue.toLocaleString('en-IN')}</span>
+    </div>` : `<div style="padding:8px 0;font-size:13px;color:var(--success);font-weight:600">✅ Fully Paid</div>`}
+  </div>`;
+
+  // ── Status banner ─────────────────────────────────────────────
+  const bannerCfg = {
+    payment_pending:             { bg:'#fffbeb', border:'#fde68a', icon:'💰', color:'#b45309', msg: priceIsSet ? `Pay ₹${tokenAmt.toLocaleString('en-IN')} token to confirm your booking` : 'Admin will confirm your price shortly' },
+    payment_under_verification:  { bg:'#eff6ff', border:'#bfdbfe', icon:'🔍', color:'#1d4ed8', msg:'Payment submitted — admin is verifying' },
+    active:                      { bg:'#f0fdf4', border:'#bbf7d0', icon:'✅', color:'#15803d', msg:'Move active! Agent will visit for final quote' },
+    in_progress:                 { bg:'#f0fdf4', border:'#bbf7d0', icon:'🚛', color:'#15803d', msg:'Move is in progress' },
+    completed:                   { bg:'#ede9fe', border:'#ddd6fe', icon:'🎉', color:'#6d28d9', msg:'Move completed!' },
+  };
+  const bc = bannerCfg[status] || { bg:'#f1f5f9', border:'#e2e8f0', icon:'📦', color:'var(--sub)', msg:status };
+  const bannerHtml = `
+  <div style="padding:14px 16px;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;gap:12px;
+    background:${bc.bg};border:1.5px solid ${bc.border}">
+    <span style="font-size:26px;flex-shrink:0">${bc.icon}</span>
+    <div>
+      <div style="font-size:13px;font-weight:700;color:${bc.color}">${STATUS_LABELS[status]?.label || status}</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:2px">${bc.msg}</div>
+    </div>
+  </div>`;
+
+  // ── CTA section ───────────────────────────────────────────────
+  let ctaHtml = '';
+
+  // Customer: awaiting price
+  if (isCustomer && isPending && !priceIsSet) {
+    ctaHtml = `
+    <div style="padding:16px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;text-align:center;margin-bottom:16px">
+      <div style="font-size:32px;margin-bottom:8px">⏳</div>
+      <div style="font-weight:700;margin-bottom:6px">Waiting for price confirmation</div>
+      <div style="font-size:13px;color:var(--sub)">Our team will review your move details and confirm the price shortly. You'll get a notification.</div>
+    </div>`;
+  }
+
+  // Customer: price set, can pay token
+  if (isCustomer && isPending && priceIsSet) {
+    ctaHtml = `
+    <button onclick="openTokenPayModal('${data.move_id}',${tokenAmt})"
+      style="width:100%;padding:16px;background:var(--accent);border:none;border-radius:14px;color:#fff;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:12px;box-shadow:0 4px 14px rgba(37,99,235,0.25)">
+      🔐 Pay ₹${tokenAmt.toLocaleString('en-IN')} to Confirm Booking →
+    </button>
+    <div style="text-align:center;font-size:12px;color:var(--sub);margin-bottom:20px">
+      This is 10% of your confirmed price. Pay via UPI or bank transfer and submit the reference.
+    </div>`;
+  }
+
+  // Customer: token under verification
+  if (isCustomer && isVerifying && !data.token_paid) {
+    ctaHtml = `
+    <div style="padding:14px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;font-size:13px;color:#1d4ed8;text-align:center;margin-bottom:16px">
+      🔍 Token payment submitted and under review. You'll be notified within 2–4 hours.
+    </div>`;
+  }
+
+  // Customer: active + quote exists → show balance CTA
+  if (isCustomer && isActive && quote && balanceDue > 0 && status !== 'in_progress' && status !== 'completed') {
+    ctaHtml = `
+    <button onclick="openBalancePayModal('${data.move_id}',${balanceDue})"
+      style="width:100%;padding:16px;background:#7c3aed;border:none;border-radius:14px;color:#fff;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:12px;box-shadow:0 4px 14px rgba(124,58,237,0.25)">
+      💳 Pay Balance ₹${balanceDue.toLocaleString('en-IN')} →
+    </button>`;
+  }
+
+  // Customer: balance under verification
+  if (isCustomer && isVerifying && data.token_paid) {
+    ctaHtml = `
+    <div style="padding:14px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;font-size:13px;color:#1d4ed8;text-align:center;margin-bottom:16px">
+      🔍 Balance payment submitted and under review. You'll be notified once verified.
+    </div>`;
+  }
+
+  // Agent/Admin: set price (when no price yet)
+  if ((isAgent || isAdmin) && !priceIsSet) {
+    ctaHtml += `
+    <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:14px;padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px">💰 Set Confirmed Price</div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:12px">Set the final price so the customer can pay the 10% token to confirm their booking.</div>
+      <button onclick="openSetPricingModal('${data.move_id}')" style="padding:11px 20px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+        📝 Set Price
+      </button>
+    </div>`;
+  }
+
+  // Agent/Admin: move active, no quote yet → submit on-site quote
+  if ((isAgent || isAdmin) && isActive && !quote) {
+    ctaHtml += `
+    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:14px;padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px">📋 Submit On-Site Quote</div>
+      <div style="font-size:12px;color:var(--sub);margin-bottom:12px">After visiting the customer's location, submit your final estimate. The balance will be auto-calculated.</div>
+      <button onclick="openSubmitQuoteModal('${data.move_id}')" style="padding:11px 20px;background:#16a34a;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+        📝 Submit Final Quote
+      </button>
+    </div>`;
+  }
+
+  // ── Agent Quote detail ────────────────────────────────────────
+  const quoteHtml = quote ? `
+  <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:16px">
+    <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">
+      📋 Agent's Final Quote ${quote.agent_name ? `· ${quote.agent_name}` : ''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px">
+        <div style="font-size:10px;color:var(--sub);margin-bottom:2px">Base Price</div>
+        <div style="font-size:15px;font-weight:700">₹${parseFloat(quote.base_price).toLocaleString('en-IN')}</div>
+      </div>
+      ${parseFloat(quote.floor_charge)>0?`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px"><div style="font-size:10px;color:var(--sub);margin-bottom:2px">Floor Charges</div><div style="font-size:15px;font-weight:700">₹${parseFloat(quote.floor_charge).toLocaleString('en-IN')}</div></div>`:''}
+      ${parseFloat(quote.fragile_charge)>0?`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px"><div style="font-size:10px;color:var(--sub);margin-bottom:2px">Fragile</div><div style="font-size:15px;font-weight:700">₹${parseFloat(quote.fragile_charge).toLocaleString('en-IN')}</div></div>`:''}
+      ${parseFloat(quote.extra_items)>0?`<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px"><div style="font-size:10px;color:#b45309;margin-bottom:2px">Extra Items</div><div style="font-size:15px;font-weight:700;color:#b45309">₹${parseFloat(quote.extra_items).toLocaleString('en-IN')}</div></div>`:''}
+      ${parseFloat(quote.discount)>0?`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px"><div style="font-size:10px;color:#16a34a;margin-bottom:2px">Discount</div><div style="font-size:15px;font-weight:700;color:#16a34a">−₹${parseFloat(quote.discount).toLocaleString('en-IN')}</div></div>`:''}
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px">
+        <div style="font-size:10px;color:var(--accent);margin-bottom:2px">GST 18%</div>
+        <div style="font-size:15px;font-weight:700;color:var(--accent)">₹${parseFloat(quote.tax).toLocaleString('en-IN')}</div>
+      </div>
+    </div>
+    <div style="border-top:2px solid #e2e8f0;padding-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;color:var(--sub);font-weight:600">FINAL TOTAL</span>
+      <span style="font-size:22px;font-weight:800;color:#7c3aed">₹${parseFloat(quote.total).toLocaleString('en-IN')}</span>
+    </div>
+    ${quote.notes?`<div style="margin-top:10px;padding:10px;background:#f1f5f9;border-radius:8px;font-size:13px;color:var(--sub)">💬 ${quote.notes}</div>`:''}
+  </div>` : '';
+
+  // ── Payment history ───────────────────────────────────────────
+  const historyHtml = data.payments && data.payments.length ? `
+  <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:18px">
+    <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">🧾 Payment History</div>
+    ${data.payments.map(p => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e2e8f0">
+      <div>
+        <div style="font-size:13px;font-weight:600;text-transform:capitalize">${(p.payment_type||'payment').replace('_',' ')} · ${(p.payment_mode||'').replace('_',' ')}</div>
+        <div style="font-size:11px;color:var(--sub)">${new Date(p.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:14px;font-weight:700">₹${parseFloat(p.amount).toLocaleString('en-IN')}</div>
+        <div style="font-size:11px;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:2px;
+          background:${['verified','success'].includes(p.status)?'#dcfce7':p.status==='under_verification'?'#eff6ff':'#fef2f2'};
+          color:${['verified','success'].includes(p.status)?'#15803d':p.status==='under_verification'?'#1d4ed8':'#dc2626'}">
+          ${p.status==='under_verification'?'Pending Verification':p.status}
+        </div>
+      </div>
+    </div>`).join('')}
+  </div>` : '';
+
+  content.innerHTML = `
+  <div style="max-width:560px;margin:0 auto">
+    <div style="margin-bottom:20px">
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px">${data.title || 'Payment'}</div>
+      <div style="font-size:12px;color:var(--sub)">${data.invoice_number ? `Invoice #${data.invoice_number}` : 'Invoice pending'}</div>
+    </div>
+    ${stepHtml}
+    ${bannerHtml}
+    ${summaryHtml}
+    ${ctaHtml}
+    ${quoteHtml}
+    ${historyHtml}
+  </div>`;
+}
+
+// ── MODAL: Admin/Agent sets confirmed price ───────────────────
+function openSetPricingModal(moveId) {
+  document.getElementById('setPricingContent').innerHTML = `
+  <div style="font-size:13px;color:var(--sub);margin-bottom:16px">Set the confirmed price. Customer will be notified and asked to pay 10% token.</div>
+  <div class="field"><label>Base Price (₹) *</label><input type="number" id="spBase" placeholder="e.g. 7999" min="0"/></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="field"><label>Floor Charges (₹)</label><input type="number" id="spFloor" value="0" min="0"/></div>
+    <div class="field"><label>Fragile Handling (₹)</label><input type="number" id="spFragile" value="0" min="0"/></div>
+    <div class="field"><label>Discount (₹)</label><input type="number" id="spDiscount" value="0" min="0"/></div>
+    <div class="field"><label>Notes</label><input type="text" id="spNotes" placeholder="Optional"/></div>
+  </div>
+  <div id="spPreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px;margin:12px 0;text-align:center">
+    <div style="font-size:11px;color:var(--sub);margin-bottom:4px">TOTAL (incl. GST 18%)</div>
+    <div id="spTotal" style="font-size:28px;font-weight:800;color:var(--accent)">—</div>
+    <div id="spToken" style="font-size:13px;color:var(--sub);margin-top:4px">Token: —</div>
+  </div>
+  <button onclick="previewSetPrice()" style="width:100%;padding:10px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px">🔢 Preview Total</button>
+  <button onclick="submitSetPricing('${moveId}')" id="spBtn" class="btn btn-primary">Confirm Price & Notify Customer</button>`;
+  openModal('setPricingModal');
+}
+
+function previewSetPrice() {
+  const base     = parseFloat(document.getElementById('spBase').value) || 0;
+  const floor    = parseFloat(document.getElementById('spFloor').value) || 0;
+  const fragile  = parseFloat(document.getElementById('spFragile').value) || 0;
+  const discount = parseFloat(document.getElementById('spDiscount').value) || 0;
+  const subtotal = base + floor + fragile - discount;
+  const total    = subtotal + Math.round(subtotal * 0.18);
+  const token    = Math.round(total * 0.10);
+  document.getElementById('spPreview').style.display = 'block';
+  document.getElementById('spTotal').textContent  = `₹${total.toLocaleString('en-IN')}`;
+  document.getElementById('spToken').textContent  = `Token (10%): ₹${token.toLocaleString('en-IN')}`;
+}
+
+async function submitSetPricing(moveId) {
+  const base = parseFloat(document.getElementById('spBase').value);
+  if (!base || base <= 0) { toast('Base price required', 'error'); return; }
+  const btn = document.getElementById('spBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const d = await api('POST', `/api/payments/move/${moveId}/set-pricing`, {
+      base_price:       base,
+      floor_surcharge:  parseFloat(document.getElementById('spFloor').value)   || 0,
+      fragile_surcharge:parseFloat(document.getElementById('spFragile').value) || 0,
+      discount:         parseFloat(document.getElementById('spDiscount').value)|| 0,
+      notes:            document.getElementById('spNotes').value || null,
+    });
+    closeModal('setPricingModal');
+    toast(`✅ Price set ₹${d.total.toLocaleString('en-IN')} · Token: ₹${d.token_amount.toLocaleString('en-IN')}`, 'success');
+    openPaymentScreen(moveId);
+  } catch(e) {
+    toast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Confirm Price & Notify Customer';
+  }
+}
+
+// ── MODAL: Customer pays 10% token ───────────────────────────
+function openTokenPayModal(moveId, amount) {
+  document.getElementById('tokenPayContent').innerHTML = `
+  <div style="text-align:center;margin-bottom:20px">
+    <div style="font-size:40px;margin-bottom:8px">🔐</div>
+    <div style="font-size:18px;font-weight:800;margin-bottom:4px">Confirm Your Booking</div>
+    <div style="font-size:13px;color:var(--sub)">Pay 10% now to activate your move</div>
+  </div>
+  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;text-align:center;margin-bottom:20px">
+    <div style="font-size:11px;color:var(--sub);margin-bottom:4px">TOKEN AMOUNT</div>
+    <div style="font-size:36px;font-weight:800;color:var(--accent)">₹${parseFloat(amount).toLocaleString('en-IN')}</div>
+    <div style="font-size:12px;color:var(--sub);margin-top:4px">10% of total · Balance payable after agent visit</div>
+  </div>
+  <div class="field"><label>Payment Mode</label>
+    <select id="tpMode" style="width:100%;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:14px">
+      <option value="upi">UPI</option>
+      <option value="bank_transfer">Bank Transfer / NEFT</option>
+      <option value="cash">Cash to Agent</option>
+    </select>
+  </div>
+  <div class="field"><label>Transaction Ref / UTR Number</label>
+    <input type="text" id="tpRef" placeholder="e.g. 4038291829 or UTR123456"/></div>
+  <div class="field"><label>Notes (optional)</label>
+    <input type="text" id="tpNotes" placeholder="Any message for admin"/></div>
+  <button onclick="submitTokenPay('${moveId}')" id="tpBtn" class="btn btn-primary">
+    Submit Token Payment ₹${parseFloat(amount).toLocaleString('en-IN')}
+  </button>`;
+  openModal('tokenPayModal');
+}
+
+async function submitTokenPay(moveId) {
+  const btn = document.getElementById('tpBtn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  try {
+    const d = await api('POST', `/api/payments/move/${moveId}/token`, {
+      payment_mode:    document.getElementById('tpMode').value,
+      transaction_ref: document.getElementById('tpRef').value || null,
+      notes:           document.getElementById('tpNotes').value || null,
+    });
+    closeModal('tokenPayModal');
+    toast(d.message, 'success');
+    openPaymentScreen(moveId);
+  } catch(e) {
+    toast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Submit Token Payment';
+  }
+}
+
+// ── MODAL: Customer pays balance ──────────────────────────────
+function openBalancePayModal(moveId, amount) {
+  document.getElementById('balPayContent').innerHTML = `
+  <div style="text-align:center;margin-bottom:20px">
+    <div style="font-size:40px;margin-bottom:8px">💳</div>
+    <div style="font-size:18px;font-weight:800;margin-bottom:4px">Pay Remaining Balance</div>
+    <div style="font-size:13px;color:var(--sub)">Complete payment to start your move</div>
+  </div>
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;text-align:center;margin-bottom:20px">
+    <div style="font-size:11px;color:var(--sub);margin-bottom:4px">BALANCE DUE</div>
+    <div style="font-size:36px;font-weight:800;color:#15803d">₹${parseFloat(amount).toLocaleString('en-IN')}</div>
+  </div>
+  <div class="field"><label>Payment Mode</label>
+    <select id="bpMode" style="width:100%;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:14px">
+      <option value="upi">UPI</option>
+      <option value="bank_transfer">Bank Transfer / NEFT</option>
+      <option value="cash">Cash to Agent</option>
+    </select>
+  </div>
+  <div class="field"><label>Transaction Ref / UTR Number</label>
+    <input type="text" id="bpRef" placeholder="e.g. 4038291829 or UTR123456"/></div>
+  <button onclick="submitBalancePay('${moveId}')" id="bpBtn" class="btn btn-primary">
+    Submit Balance Payment ₹${parseFloat(amount).toLocaleString('en-IN')}
+  </button>`;
+  openModal('balPayModal');
+}
+
+async function submitBalancePay(moveId) {
+  const btn = document.getElementById('bpBtn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  try {
+    const d = await api('POST', `/api/payments/move/${moveId}/pay-balance`, {
+      payment_mode:    document.getElementById('bpMode').value,
+      transaction_ref: document.getElementById('bpRef').value || null,
+    });
+    closeModal('balPayModal');
+    toast(d.message, 'success');
+    openPaymentScreen(moveId);
+  } catch(e) {
+    toast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Submit Balance Payment';
+  }
+}
+
+// ── MODAL: Agent submits on-site quote ────────────────────────
+function openSubmitQuoteModal(moveId) {
+  document.getElementById('submitQuoteContent').innerHTML = `
+  <div style="font-size:13px;color:var(--sub);margin-bottom:16px">Submit your on-site final quote. The customer's balance will be auto-updated.</div>
+  <div class="field"><label>Base Price (₹) *</label><input type="number" id="sqBase" placeholder="e.g. 8500" min="0"/></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="field"><label>Floor Charges (₹)</label><input type="number" id="sqFloor" value="0" min="0"/></div>
+    <div class="field"><label>Fragile Handling (₹)</label><input type="number" id="sqFragile" value="0" min="0"/></div>
+    <div class="field"><label>Extra Items (₹)</label><input type="number" id="sqExtra" value="0" min="0"/></div>
+    <div class="field"><label>Discount (₹)</label><input type="number" id="sqDiscount" value="0" min="0"/></div>
+  </div>
+  <div class="field"><label>Notes to Customer</label><textarea id="sqNotes" placeholder="e.g. Found 2 extra heavy items on-site..." style="height:80px"></textarea></div>
+  <div id="sqPreview" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin:12px 0;text-align:center">
+    <div style="font-size:11px;color:var(--sub);margin-bottom:4px">FINAL TOTAL (incl. GST)</div>
+    <div id="sqTotal" style="font-size:28px;font-weight:800;color:#15803d">—</div>
+  </div>
+  <button onclick="previewQuote()" style="width:100%;padding:10px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px">🔢 Preview Total</button>
+  <button onclick="submitAgentQuote('${moveId}')" id="sqBtn" class="btn btn-primary" style="background:#16a34a;border-color:#16a34a">Submit Quote to Customer</button>`;
+  openModal('submitQuoteModal');
+}
+
+function previewQuote() {
+  const base     = parseFloat(document.getElementById('sqBase').value) || 0;
+  const floor    = parseFloat(document.getElementById('sqFloor').value) || 0;
+  const fragile  = parseFloat(document.getElementById('sqFragile').value) || 0;
+  const extra    = parseFloat(document.getElementById('sqExtra').value) || 0;
+  const discount = parseFloat(document.getElementById('sqDiscount').value) || 0;
+  const subtotal = base + floor + fragile + extra - discount;
+  const total    = subtotal + Math.round(subtotal * 0.18);
+  document.getElementById('sqPreview').style.display = 'block';
+  document.getElementById('sqTotal').textContent = `₹${total.toLocaleString('en-IN')}`;
+}
+
+async function submitAgentQuote(moveId) {
+  const base = parseFloat(document.getElementById('sqBase').value);
+  if (!base || base <= 0) { toast('Base price is required', 'error'); return; }
+  const btn = document.getElementById('sqBtn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  try {
+    const d = await api('POST', `/api/quotes/move/${moveId}`, {
+      base_price:     base,
+      floor_charge:   parseFloat(document.getElementById('sqFloor').value)   || 0,
+      fragile_charge: parseFloat(document.getElementById('sqFragile').value) || 0,
+      extra_items:    parseFloat(document.getElementById('sqExtra').value)   || 0,
+      discount:       parseFloat(document.getElementById('sqDiscount').value)|| 0,
+      notes:          document.getElementById('sqNotes').value || null,
+    });
+    closeModal('submitQuoteModal');
+    toast(`✅ Quote submitted! Final: ₹${d.total.toLocaleString('en-IN')} · Balance due: ₹${d.balance_due.toLocaleString('en-IN')}`, 'success');
+    openPaymentScreen(moveId);
+  } catch(e) {
+    toast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Submit Quote to Customer';
+  }
+}
+
+// ── Admin: verify token from admin payments panel ─────────────
+async function adminVerifyToken(moveId, action) {
+  const sel = document.getElementById(`tokenAgent_${moveId}`);
+  const agentId = sel ? sel.value || null : null;
+  try {
+    await api('POST', `/api/payments/move/${moveId}/verify-token`, { action, agent_id: agentId });
+    toast(action === 'approve' ? '✅ Move activated!' : '❌ Payment rejected', action === 'approve' ? 'success' : 'error');
+    renderAdminPayments();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ── Admin: verify balance from admin payments panel ───────────
+async function adminVerifyBalance(moveId, action) {
+  try {
+    await api('POST', `/api/payments/move/${moveId}/verify-balance`, { action });
+    toast(action === 'approve' ? '✅ Balance verified — move in progress!' : '❌ Balance rejected', action === 'approve' ? 'success' : 'error');
+    renderAdminPayments();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+
 // ─── MODALS ───────────────────────────────────────────────────
 function openModal(id) {
   document.getElementById(id).classList.add('open');
@@ -3836,6 +4210,12 @@ function filterAdminMoves() {
         <button onclick="doAssignAgent('${m.id}')" style="padding:8px 12px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Assign</button>
         ${canForce?`<button onclick="doForceActivate('${m.id}')" style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;color:var(--success);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">⚡ Force</button>`:''}
       </div>
+      ${['created','payment_pending'].includes(m.status) ? `
+      <div style="margin-top:8px">
+        <button onclick="openSetPricingModal('${m.id}')" style="width:100%;padding:9px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+          💰 ${m.amount_total > 0 ? 'Update' : 'Set'} Price${m.amount_total > 0 ? ` (₹${parseFloat(m.amount_total).toLocaleString('en-IN')} set)` : ''}
+        </button>
+      </div>` : ''}
     </div>`;
   }).join('');
 }
@@ -3867,31 +4247,55 @@ async function doForceActivate(moveId) {
 async function renderAdminPayments() {
   const c = document.getElementById('adminContent');
   try {
-    const [pending, all] = await Promise.all([
+    const [pending, all, users] = await Promise.all([
       api('GET','/api/admin/payments/pending'),
       api('GET','/api/admin/payments'),
+      adminData.users ? Promise.resolve(adminData.users) : api('GET','/api/admin/users'),
     ]);
+    if (!adminData.users) adminData.users = users;
+    adminData.agents = (adminData.users||[]).filter(u => u.role === 'agent');
     const statusColor = { success:'var(--success)', under_verification:'#a78bfa', failed:'var(--error)', pending:'var(--warn)' };
     c.innerHTML = `
       ${pending.length ? `
       <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">⚡ PENDING VERIFICATION (${pending.length})</div>
       <div class="card" style="padding:0;margin-bottom:16px">
-        ${pending.map(p => `
-        <div style="padding:14px;border-bottom:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between">
-            <div><div style="font-weight:600">${p.move_title}</div>
-            <div style="font-size:12px;color:var(--sub)">👤 ${p.customer_name} · ${p.payment_mode.replace('_',' ')}</div>
-            ${p.recorded_by_name?`<div style="font-size:11px;color:var(--dim)">Agent: ${p.recorded_by_name}</div>`:''}</div>
-            <div style="text-align:right">
-              <div style="font-weight:700;font-size:16px;color:var(--accent)">₹${parseFloat(p.amount).toLocaleString('en-IN')}</div>
-              <div style="font-size:11px;color:var(--dim)">${new Date(p.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+        ${pending.map(p => {
+          const isToken   = p.payment_type === 'token';
+          const isBalance = p.payment_type === 'balance';
+          const agentOpts = (adminData.agents||[]).map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+          const typeLabel = isToken ? '🔐 Token (10%)' : isBalance ? '💳 Balance' : '💰 Payment';
+          return `
+          <div style="padding:14px;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.move_title}</div>
+                <div style="font-size:12px;color:var(--sub);margin-top:2px">👤 ${p.customer_name} · ${typeLabel} · ${p.payment_mode.replace('_',' ')}</div>
+                ${p.transaction_id ? `<div style="font-size:11px;color:var(--dim);margin-top:2px">Ref: ${p.transaction_id}</div>` : ''}
+                ${p.notes ? `<div style="font-size:11px;color:var(--dim);margin-top:2px">Note: ${p.notes}</div>` : ''}
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-weight:800;font-size:18px;color:var(--accent)">₹${parseFloat(p.amount).toLocaleString('en-IN')}</div>
+                <div style="font-size:11px;color:var(--dim)">${new Date(p.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+              </div>
             </div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:10px">
-            <button onclick="adminVerifyPayment('${p.id}','approve')" style="flex:1;padding:9px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;color:var(--success);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✓ Approve</button>
-            <button onclick="adminVerifyPayment('${p.id}','reject')" style="flex:1;padding:9px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:8px;color:var(--error);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✗ Reject</button>
-          </div>
-        </div>`).join('')}
+            ${isToken ? `
+            <div style="margin:10px 0 6px">
+              <label style="font-size:11px;color:var(--sub);font-weight:600;display:block;margin-bottom:4px">Assign Agent (optional — can be done later)</label>
+              <select id="tokenAgent_${p.move_id}" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px">
+                <option value="">— No agent yet —</option>
+                ${agentOpts}
+              </select>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <button onclick="adminVerifyToken('${p.move_id}','approve')" style="flex:1;padding:10px;background:#dcfce7;border:1.5px solid #86efac;border-radius:8px;color:#15803d;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✓ Verify & Activate Move</button>
+              <button onclick="adminVerifyToken('${p.move_id}','reject')" style="padding:10px 14px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;color:#dc2626;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✗</button>
+            </div>` : `
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button onclick="adminVerifyBalance('${p.move_id}','approve')" style="flex:1;padding:10px;background:#dcfce7;border:1.5px solid #86efac;border-radius:8px;color:#15803d;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✓ Verify Balance</button>
+              <button onclick="adminVerifyBalance('${p.move_id}','reject')" style="padding:10px 14px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;color:#dc2626;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">✗</button>
+            </div>`}
+          </div>`;
+        }).join('')}
       </div>` : ''}
       <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">ALL PAYMENTS</div>
       <div class="card" style="padding:0">
