@@ -2081,7 +2081,7 @@ async function openMove(id) {
     currentMove = m;
     const boxes = await api('GET', `/api/boxes/move/${id}`);
     const furniture = await api('GET', `/api/furniture/move/${id}`);
-    const delivered = boxes.filter(b => b.status === 'delivered').length;
+    const delivered = Array.isArray(boxes) ? boxes.filter(b => b.status === 'delivered').length : 0;
     const paid = isActive(m);
     const isPending = ['payment_pending', 'created'].includes(m.status);
     const s = STATUS_LABELS[m.status] || { label: m.status, color: 'var(--sub)', icon: '📦' };
@@ -2628,10 +2628,10 @@ async function attemptCompleteMove(id) {
     api('GET', `/api/furniture/move/${id}`)
   ]);
 
-  const pendingBoxes        = boxes.filter(b => b.status !== 'delivered');
-  const pendingFurn         = furniture.filter(f => !f.condition_after);
-  const missingPickupPhoto  = furniture.filter(f => !(f.photos||[]).find(p => p.photo_type==='before'));
-  const missingDelivPhoto   = furniture.filter(f => f.condition_after && !(f.photos||[]).find(p => p.photo_type==='after'));
+  const pendingBoxes        = Array.isArray(boxes) ? boxes.filter(b => b.status !== 'delivered') : [];
+  const pendingFurn         = Array.isArray(furniture) ? furniture.filter(f => !f.condition_after) : [];
+  const missingPickupPhoto  = Array.isArray(furniture) ? furniture.filter(f => !(f.photos||[]).find(p => p.photo_type==='before')) : [];
+  const missingDelivPhoto   = Array.isArray(furniture) ? furniture.filter(f => f.condition_after && !(f.photos||[]).find(p => p.photo_type==='after')) : [];
 
   const checks = [
     { label: `All boxes delivered`,         ok: pendingBoxes.length === 0,       detail: pendingBoxes.length ? `${pendingBoxes.length} box${pendingBoxes.length>1?'es':''} still pending` : null },
@@ -2697,7 +2697,7 @@ async function loadBoxes(moveId) {
   updateBulkBar();
   try {
     const boxes = await api('GET', `/api/boxes/move/${id}`);
-    if (!boxes.length) {
+    if (!Array.isArray(boxes) || !boxes.length) {
       list.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">No boxes yet</div><div class="empty-sub">Tap + Box to add your first</div></div>`;
       return;
     }
