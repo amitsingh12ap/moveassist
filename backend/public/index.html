@@ -1098,7 +1098,7 @@ body {
             <button class="btn btn-secondary" id="authTabRegister" onclick="switchAuthTab('register')" style="flex:1;border-radius:8px;padding:10px;font-size:13px;background:transparent;border:none;color:var(--sub)">Register</button>
           </div>
           <div id="authLoginForm">
-            <div class="field"><label>Email Address</label><input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email"/></div>
+            <div class="field"><label>Email or Phone Number</label><input type="text" id="loginEmailOrPhone" placeholder="you@email.com or +91-9999999999" autocomplete="username"/></div>
             <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"/></div>
             <button class="btn btn-primary" onclick="doLogin()" id="loginBtn" style="margin-top:4px">Sign In →</button>
           </div>
@@ -1678,7 +1678,7 @@ async function doLogin() {
   btn.disabled = true; btn.textContent = 'Logging in...';
   try {
     const data = await api('POST', '/api/auth/login', {
-      email: document.getElementById('loginEmail').value,
+      emailOrPhone: document.getElementById('loginEmailOrPhone').value,
       password: document.getElementById('loginPassword').value,
     });
     token = data.token;
@@ -2365,6 +2365,10 @@ async function createMove() {
   } catch(e) {
     if (e.message?.includes('INTRA_CITY_ONLY')) {
       toast('Only same-city moves are currently supported', 'error');
+      document.getElementById('createStep2').style.display = 'none';
+      document.getElementById('createStep1').style.display = '';
+    } else if (e.message?.includes('CITIES_REQUIRED')) {
+      toast('Please provide both pickup and delivery cities', 'error');
       document.getElementById('createStep2').style.display = 'none';
       document.getElementById('createStep1').style.display = '';
     } else {

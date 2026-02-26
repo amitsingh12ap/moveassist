@@ -69,7 +69,17 @@ exports.create = async (req, res) => {
   try {
     // Intra-city check if flag enabled
     const flag = await db.query("SELECT enabled FROM feature_flags WHERE key='intra_city_only'");
-    if (flag.rows[0]?.enabled && from_city && to_city) {
+    
+    if (flag.rows[0]?.enabled) {
+      // Require cities to be provided when feature flag is enabled
+      if (!from_city || !to_city) {
+        return res.status(400).json({
+          error: 'CITIES_REQUIRED',
+          message: 'Please provide both pickup and delivery cities to proceed with your move.'
+        });
+      }
+      
+      // Normalize and check if cities match
       const normalize = s => s.toLowerCase().trim().replace(/\s+/g,' ');
       if (normalize(from_city) !== normalize(to_city)) {
         return res.status(400).json({
