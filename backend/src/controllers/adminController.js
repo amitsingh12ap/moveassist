@@ -261,47 +261,132 @@ exports.getUsers = async (req, res) => {
   try {
     const result = await db.query(`
       SELECT u.id, u.name, u.email, u.phone, u.role, u.created_at,
-        COUNT(m.id) as move_count
+        COALESCE(COUNT(m.id), 0)::integer as total_moves
       FROM users u
       LEFT JOIN moves m ON m.user_id = u.id
-      GROUP BY u.id ORDER BY u.created_at DESC
+      GROUP BY u.id, u.name, u.email, u.phone, u.role, u.created_at
+      ORDER BY u.created_at DESC
     `);
     res.json(result.rows);
   } catch(err) {
-    res.status(500).json({ error: 'Failed to get users' });
+    console.error('Get users error:', err);
+    res.status(500).json({ error: 'Failed to get users: ' + err.message });
   }
 };
 
 // ── CHANGE USER ROLE ─────────────────────────────────────────
 exports.updateUserRole = async (req, res) => {
-  const { role } = req.body;
-  if (!['customer','agent','admin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
-  if (req.params.id === req.user.id) return res.status(400).json({ error: "Can't change your own role" });
-  try {
-    const result = await db.query(
-      'UPDATE users SET role=$1 WHERE id=$2 RETURNING id, name, email, role',
-      [role, req.params.id]
-    );
-    res.json(result.rows[0]);
-  } catch(err) {
-    res.status(500).json({ error: 'Failed to update role' });
-  }
+  // Roles are permanent and cannot be changed once assigned
+  return res.status(403).json({ 
+    error: 'Role changes are disabled. Roles are permanent once assigned. Please delete and recreate the user if needed.' 
+  });
 };
 
 // ── CREATE AGENT ACCOUNT ─────────────────────────────────────
 exports.createAgent = async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone, role = 'agent' } = req.body;
   if (!name || !email || !password) return res.status(400).json({ error: 'name, email, password required' });
+  
+  // Validate role
+  const validRoles = ['agent', 'admin', 'customer'];
+  if (!validRoles.includes(role)) return res.status(400).json({ error: 'Invalid role. Must be agent, admin, or customer' });
+  
   try {
     const hash = await bcrypt.hash(password, 12);
     const result = await db.query(
       `INSERT INTO users (name, email, password_hash, phone, role)
-       VALUES ($1,$2,$3,$4,'agent') RETURNING id, name, email, role`,
-      [name, email, hash, phone]
+       VALUES ($1,$2,$3,$4,$5) RETURNING id, name, email, role`,
+      [name, email, hash, phone, role]
     );
     res.status(201).json(result.rows[0]);
   } catch(err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Email already registered' });
-    res.status(500).json({ error: 'Failed to create agent' });
+    res.status(500).json({ error: `Failed to create ${role}` });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  const { id } = req.params;
+  
+  const client = await db.getClient();
+  try {
+    await client.query('BEGIN');
+    
+    // Check if user exists
+    const userCheck = await client.query('SELECT role, email, name FROM users WHERE id = $1', [id]);
+    if (userCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = userCheck.rows[0];
+    console.log(`Attempting to delete user: ${user.name} (${user.email}) - Role: ${user.role}`);
+    
+    // Prevent deletion of admin accounts
+    if (user.role === 'admin') {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Cannot delete admin accounts. Only agents and customers can be deleted.' });
+    }
+    
+    // Delete related records first to avoid FK constraint violations
+    
+    // 1. Delete box scans created by this user
+    const boxScans = await client.query('DELETE FROM box_scans WHERE scanned_by = $1', [id]);
+    console.log(`  Deleted ${boxScans.rowCount} box scans created by user`);
+    
+    // 2. Update moves - set agent_id to NULL if this user was an agent
+    const agentMoves = await client.query('UPDATE moves SET agent_id = NULL WHERE agent_id = $1', [id]);
+    console.log(`  Updated ${agentMoves.rowCount} moves (unassigned agent)`);
+    
+    // 3. Delete notifications for this user
+    const notifs = await client.query('DELETE FROM notifications WHERE user_id = $1', [id]);
+    console.log(`  Deleted ${notifs.rowCount} notifications`);
+    
+    // 4. For customer users, we need to handle their moves
+    if (user.role === 'customer') {
+      console.log(`  User is customer - deleting related move data...`);
+      
+      // Delete disputes first
+      const disputes = await client.query('DELETE FROM disputes WHERE move_id IN (SELECT id FROM moves WHERE user_id = $1)', [id]);
+      console.log(`    Deleted ${disputes.rowCount} disputes`);
+      
+      // Delete payments
+      const payments = await client.query('DELETE FROM payments WHERE move_id IN (SELECT id FROM moves WHERE user_id = $1)', [id]);
+      console.log(`    Deleted ${payments.rowCount} payments`);
+      
+      // Delete move_items if table exists
+      try {
+        const items = await client.query('DELETE FROM move_items WHERE move_id IN (SELECT id FROM moves WHERE user_id = $1)', [id]);
+        console.log(`    Deleted ${items.rowCount} move items`);
+      } catch(e) {
+        console.log(`    move_items table not found (skipping)`);
+      }
+      
+      // Delete box_scans for moves
+      const moveBoxScans = await client.query('DELETE FROM box_scans WHERE move_id IN (SELECT id FROM moves WHERE user_id = $1)', [id]);
+      console.log(`    Deleted ${moveBoxScans.rowCount} box scans for moves`);
+      
+      // Finally delete moves
+      const moves = await client.query('DELETE FROM moves WHERE user_id = $1', [id]);
+      console.log(`    Deleted ${moves.rowCount} moves`);
+    }
+    
+    // 5. Delete activities
+    const activities = await client.query('DELETE FROM activities WHERE user_id = $1', [id]);
+    console.log(`  Deleted ${activities.rowCount} activities`);
+    
+    // 6. Delete the user
+    await client.query('DELETE FROM users WHERE id = $1', [id]);
+    console.log(`✅ Successfully deleted user: ${user.name}`);
+    
+    await client.query('COMMIT');
+    res.json({ message: 'User deleted successfully' });
+    
+  } catch(err) {
+    await client.query('ROLLBACK');
+    console.error('❌ Delete user error:', err.message);
+    res.status(500).json({ error: 'Failed to delete user: ' + err.message });
+  } finally {
+    client.release();
   }
 };

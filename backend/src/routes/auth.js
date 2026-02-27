@@ -10,8 +10,8 @@ router.post('/register', [
 ], authController.register);
 
 router.post('/login', [
-  body('email').isEmail(),
-  body('password').notEmpty(),
+  body('emailOrPhone').notEmpty().withMessage('Email or phone number is required'),
+  body('password').notEmpty().withMessage('Password is required'),
 ], authController.login);
 
 module.exports = router;

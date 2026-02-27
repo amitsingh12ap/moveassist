@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing Configuration | MoveAssist Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #f5f7fa; color: #1e293b; }
+
+/* Container */
+.container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+/* Header */
+header { background: white; border-bottom: 1px solid #e2e8f0; padding: 20px 0; margin-bottom: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.header-content { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 24px; font-weight: 700; color: #0f172a; }
+.subtitle { color: #64748b; font-size: 14px; margin-top: 4px; }
+.header-right { display: flex; gap: 12px; align-items: center; }
+
+/* Buttons */
+.btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 500; cursor: pointer; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: #2563eb; color: white; }
+.btn-primary:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+.btn-secondary { background: #f1f5f9; color: #334155; }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-success { background: #10b981; color: white; }
+.btn-success:hover { background: #059669; }
+
+/* Cards */
+.card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; }
+.card-title { font-size: 18px; font-weight: 600; color: #0f172a; }
+
+/* Grid */
+.configs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px; margin-top: 24px; }
+.config-card { background: white; border-radius: 10px; border: 2px solid #e2e8f0; padding: 20px; position: relative; transition: all 0.2s; }
+.config-card:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,0.1); }
+.config-card.default { border-color: #10b981; background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%); }
+.config-card.inactive { opacity: 0.6; }
+
+.config-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; }
+.config-name { font-size: 16px; font-weight: 600; color: #0f172a; }
+.config-city { font-size: 13px; color: #64748b; margin-top: 4px; }
+.badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.badge-default { background: #d1fae5; color: #047857; }
+.badge-active { background: #dbeafe; color: #1d4ed8; }
+.badge-inactive { background: #f1f5f9; color: #64748b; }
+
+.pricing-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px; }
+.pricing-item { background: #f8fafc; padding: 10px 12px; border-radius: 6px; }
+.pricing-label { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+.pricing-value { font-size: 15px; font-weight: 600; color: #0f172a; }
+.pricing-value.highlight { color: #2563eb; }
+
+.config-actions { display: flex; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
+
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.active { display: flex; }
+.modal-content { background: white; border-radius: 16px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; }
+.modal-header { padding: 24px; border-bottom: 1px solid #e2e8f0; }
+.modal-title { font-size: 20px; font-weight: 700; }
+.modal-body { padding: 24px; }
+.modal-footer { padding: 20px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; }
+
+/* Forms */
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.form-grid.single { grid-template-columns: 1fr; }
+.form-group { margin-bottom: 20px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px; }
+.form-input, .form-select, .form-textarea { width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-hint { font-size: 12px; color: #64748b; margin-top: 4px; }
+.form-checkbox { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.form-checkbox input { width: 18px; height: 18px; }
+
+/* Alert */
+.alert { padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+.alert-success { background: #d1fae5; color: #047857; border: 1px solid #6ee7b7; }
+.alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+.alert-info { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+
+/* Loading */
+.loading { text-align: center; padding: 40px; color: #64748b; }
+.spinner { display: inline-block; width: 40px; height: 40px; border: 3px solid #f1f5f9; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty State */
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-state svg { width: 64px; height: 64px; color: #cbd5e1; margin-bottom: 16px; }
+.empty-state h3 { font-size: 18px; color: #334155; margin-bottom: 8px; }
+.empty-state p { color: #64748b; margin-bottom: 20px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .configs-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .pricing-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-content">
+    <div>
+      <h1>💰 Pricing Configuration</h1>
+      <p class="subtitle">Manage pricing models for different cities and routes</p>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-secondary" onclick="window.location.href='/admin'">
+        ← Back to Dashboard
+      </button>
+      <button class="btn btn-primary" onclick="openCreateModal()">
+        + New Pricing Config
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Alert -->
+  <div id="alertContainer"></div>
+
+  <!-- Stats Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Overview</h2>
+    </div>
+    <div class="pricing-row">
+      <div class="pricing-item">
+        <div class="pricing-label">Total Configurations</div>
+        <div class="pricing-value" id="statTotal">-</div>
+      </div>
+      <div class="pricing-item">
+        <div class="pricing-label">Active Configs</div>
+        <div class="pricing-value highlight" id="statActive">-</div>
+      </div>
+      <div class="pricing-item">
+        <div class="pricing-label">City-Specific</div>
+        <div class="pricing-value" id="statCities">-</div>
+      </div>
+      <div class="pricing-item">
+        <div class="pricing-label">Default Config</div>
+        <div class="pricing-value" id="statDefault">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingContainer" class="loading">
+    <div class="spinner"></div>
+    <p>Loading pricing configurations...</p>
+  </div>
+
+  <!-- Configs Grid -->
+  <div id="configsContainer" style="display: none;">
+    <div class="configs-grid" id="configsGrid"></div>
+  </div>
+
+  <!-- Empty State -->
+  <div id="emptyState" class="empty-state" style="display: none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>
+    </svg>
+    <h3>No pricing configurations yet</h3>
+    <p>Create your first pricing configuration to get started</p>
+    <button class="btn btn-primary" onclick="openCreateModal()">Create Pricing Config</button>
+  </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div id="configModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">Create Pricing Configuration</h2>
+    </div>
+    <div class="modal-body">
+      <form id="configForm">
+        <input type="hidden" id="configId">
+        
+        <div class="form-grid">
+          <!-- Basic Info -->
+          <div class="form-group full">
+            <label class="form-label">Configuration Name *</label>
+            <input type="text" class="form-input" id="configName" required 
+                   placeholder="e.g., Mumbai Premium Pricing">
+            <p class="form-hint">A descriptive name for this pricing model</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">City (Optional)</label>
+            <input type="text" class="form-input" id="city" 
+                   placeholder="e.g., Mumbai, Delhi, Bangalore">
+            <p class="form-hint">Leave empty for national default pricing</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <div class="form-checkbox">
+              <input type="checkbox" id="isActive" checked>
+              <label>Active (available for use)</label>
+            </div>
+            <div class="form-checkbox">
+              <input type="checkbox" id="isDefault">
+              <label>Set as Default (applies when no city match)</label>
+            </div>
+          </div>
+
+          <!-- Base Pricing -->
+          <div class="form-group full">
+            <h3 style="font-size: 16px; margin-bottom: 12px; color: #0f172a;">Base Pricing by BHK Type</h3>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">1 BHK Base (₹) *</label>
+            <input type="number" class="form-input" id="base1bhk" required min="0" step="100" value="5500">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">2 BHK Base (₹) *</label>
+            <input type="number" class="form-input" id="base2bhk" required min="0" step="100" value="10000">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">3 BHK Base (₹) *</label>
+            <input type="number" class="form-input" id="base3bhk" required min="0" step="100" value="16000">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">4 BHK Base (₹) *</label>
+            <input type="number" class="form-input" id="base4bhk" required min="0" step="100" value="21000">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">5 BHK Base (₹) *</label>
+            <input type="number" class="form-input" id="base5bhk" required min="0" step="100" value="28000">
+          </div>
+
+          <!-- Distance Rates -->
+          <div class="form-group full">
+            <h3 style="font-size: 16px; margin: 20px 0 12px; color: #0f172a;">Distance-Based Charges</h3>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Local Rate (₹/km) *</label>
+            <input type="number" class="form-input" id="rateLocal" required min="0" step="0.5" value="12">
+            <p class="form-hint">For distances 0-50 km</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Regional Rate (₹/km) *</label>
+            <input type="number" class="form-input" id="rateRegional" required min="0" step="0.5" value="20">
+            <p class="form-hint">For distances 50-200 km</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Intercity Rate (₹/km) *</label>
+            <input type="number" class="form-input" id="rateIntercity" required min="0" step="0.5" value="15">
+            <p class="form-hint">For distances 200+ km</p>
+          </div>
+
+          <!-- Additional Charges -->
+          <div class="form-group full">
+            <h3 style="font-size: 16px; margin: 20px 0 12px; color: #0f172a;">Additional Charges</h3>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Floor Charge (₹/floor) *</label>
+            <input type="number" class="form-input" id="floorCharge" required min="0" step="50" value="400">
+            <p class="form-hint">When no elevator available</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Packing Materials (%) *</label>
+            <input type="number" class="form-input" id="packingPercent" required min="0" max="100" step="1" value="25">
+            <p class="form-hint">Percentage of base amount</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Fragile Items (%) *</label>
+            <input type="number" class="form-input" id="fragilePercent" required min="0" max="100" step="1" value="5">
+            <p class="form-hint">Additional charge for fragile items</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">GST (%) *</label>
+            <input type="number" class="form-input" id="gstPercent" required min="0" max="100" step="0.1" value="18">
+            <p class="form-hint">Goods and Services Tax</p>
+          </div>
+
+          <!-- Notes -->
+          <div class="form-group full">
+            <label class="form-label">Notes (Optional)</label>
+            <textarea class="form-textarea" id="notes" 
+                      placeholder="Any additional information about this pricing model..."></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveConfig()">
+        <span id="saveButtonText">Save Configuration</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================================
+// STATE & CONFIG
+// ========================================
+const API_BASE = window.location.origin;
+let token = localStorage.getItem('admin_token');
+let configs = [];
+let currentEditId = null;
+
+// ========================================
+// INITIALIZATION
+// ========================================
+document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+  loadConfigs();
+});
+
+function checkAuth() {
+  if (!token) {
+    window.location.href = '/admin';
+    return;
+  }
+}
+
+// ========================================
+// API CALLS
+// ========================================
+async function apiCall(endpoint, method = 'GET', data = null) {
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  };
+  
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+  
+  const response = await fetch(`${API_BASE}${endpoint}`, options);
+  
+  if (response.status === 401) {
+    showAlert('Session expired. Please login again.', 'error');
+    setTimeout(() => window.location.href = '/admin', 2000);
+    return null;
+  }
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Request failed');
+  }
+  
+  return response.json();
+}
+
+async function loadConfigs() {
+  try {
+    showLoading(true);
+    configs = await apiCall('/api/admin/pricing');
+    renderConfigs();
+    updateStats();
+    showLoading(false);
+  } catch (error) {
+    console.error('Error loading configs:', error);
+    showAlert('Failed to load pricing configurations: ' + error.message, 'error');
+    showLoading(false);
+  }
+}
+
+// ========================================
+// RENDERING
+// ========================================
+function renderConfigs() {
+  const container = document.getElementById('configsGrid');
+  const configsContainer = document.getElementById('configsContainer');
+  const emptyState = document.getElementById('emptyState');
+  
+  if (configs.length === 0) {
+    configsContainer.style.display = 'none';
+    emptyState.style.display = 'block';
+    return;
+  }
+  
+  configsContainer.style.display = 'block';
+  emptyState.style.display = 'none';
+  
+  container.innerHTML = configs.map(config => `
+    <div class="config-card ${config.is_default ? 'default' : ''} ${!config.is_active ? 'inactive' : ''}">
+      <div class="config-header">
+        <div>
+          <div class="config-name">${escapeHtml(config.config_name)}</div>
+          <div class="config-city">${config.city || 'National Default'}</div>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          ${config.is_default ? '<span class="badge badge-default">Default</span>' : ''}
+          ${config.is_active ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>'}
+        </div>
+      </div>
+      
+      <div class="pricing-row">
+        <div class="pricing-item">
+          <div class="pricing-label">1 BHK</div>
+          <div class="pricing-value">₹${formatNumber(config.base_1bhk)}</div>
+        </div>
+        <div class="pricing-item">
+          <div class="pricing-label">2 BHK</div>
+          <div class="pricing-value">₹${formatNumber(config.base_2bhk)}</div>
+        </div>
+        <div class="pricing-item">
+          <div class="pricing-label">3 BHK</div>
+          <div class="pricing-value">₹${formatNumber(config.base_3bhk)}</div>
+        </div>
+        <div class="pricing-item">
+          <div class="pricing-label">4 BHK</div>
+          <div class="pricing-value">₹${formatNumber(config.base_4bhk)}</div>
+        </div>
+      </div>
+      
+      <div class="pricing-row">
+        <div class="pricing-item">
+          <div class="pricing-label">Local Rate</div>
+          <div class="pricing-value highlight">₹${config.rate_per_km_local}/km</div>
+        </div>
+        <div class="pricing-item">
+          <div class="pricing-label">Regional Rate</div>
+          <div class="pricing-value highlight">₹${config.rate_per_km_regional}/km</div>
+        </div>
+        <div class="pricing-item">
+          <div class="pricing-label">Floor Charge</div>
+          <div class="pricing-value">₹${formatNumber(config.floor_charge_no_lift)}</div>
+        </div>
+        <div class="pricing-item">
+          <div class="pricing-label">GST</div>
+          <div class="pricing-value">${config.gst_percent}%</div>
+        </div>
+      </div>
+      
+      <div class="config-actions">
+        <button class="btn btn-sm btn-secondary" onclick='editConfig("${config.id}")'>
+          ✏️ Edit
+        </button>
+        <button class="btn btn-sm ${config.is_active ? 'btn-secondary' : 'btn-success'}" 
+                onclick='toggleActive("${config.id}", ${!config.is_active})'>
+          ${config.is_active ? '⏸️ Deactivate' : '▶️ Activate'}
+        </button>
+        ${!config.is_default ? `
+          <button class="btn btn-sm btn-danger" onclick='deleteConfig("${config.id}")'>
+            🗑️ Delete
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = configs.length;
+  document.getElementById('statActive').textContent = configs.filter(c => c.is_active).length;
+  document.getElementById('statCities').textContent = configs.filter(c => c.city).length;
+  const defaultConfig = configs.find(c => c.is_default);
+  document.getElementById('statDefault').textContent = defaultConfig ? defaultConfig.config_name : 'None';
+}
+
+// ========================================
+// MODAL OPERATIONS
+// ========================================
+function openCreateModal() {
+  currentEditId = null;
+  document.getElementById('modalTitle').textContent = 'Create Pricing Configuration';
+  document.getElementById('configForm').reset();
+  document.getElementById('configId').value = '';
+  
+  // Set defaults
+  document.getElementById('isActive').checked = true;
+  document.getElementById('isDefault').checked = false;
+  document.getElementById('base1bhk').value = 5500;
+  document.getElementById('base2bhk').value = 10000;
+  document.getElementById('base3bhk').value = 16000;
+  document.getElementById('base4bhk').value = 21000;
+  document.getElementById('base5bhk').value = 28000;
+  document.getElementById('rateLocal').value = 12;
+  document.getElementById('rateRegional').value = 20;
+  document.getElementById('rateIntercity').value = 15;
+  document.getElementById('floorCharge').value = 400;
+  document.getElementById('packingPercent').value = 25;
+  document.getElementById('fragilePercent').value = 5;
+  document.getElementById('gstPercent').value = 18;
+  
+  document.getElementById('configModal').classList.add('active');
+}
+
+function editConfig(id) {
+  const config = configs.find(c => c.id === id);
+  if (!config) return;
+  
+  currentEditId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Pricing Configuration';
+  document.getElementById('configId').value = config.id;
+  document.getElementById('configName').value = config.config_name;
+  document.getElementById('city').value = config.city || '';
+  document.getElementById('isActive').checked = config.is_active;
+  document.getElementById('isDefault').checked = config.is_default;
+  document.getElementById('base1bhk').value = config.base_1bhk;
+  document.getElementById('base2bhk').value = config.base_2bhk;
+  document.getElementById('base3bhk').value = config.base_3bhk;
+  document.getElementById('base4bhk').value = config.base_4bhk;
+  document.getElementById('base5bhk').value = config.base_5bhk;
+  document.getElementById('rateLocal').value = config.rate_per_km_local;
+  document.getElementById('rateRegional').value = config.rate_per_km_regional;
+  document.getElementById('rateIntercity').value = config.rate_per_km_intercity;
+  document.getElementById('floorCharge').value = config.floor_charge_no_lift;
+  document.getElementById('packingPercent').value = config.packing_material_percent;
+  document.getElementById('fragilePercent').value = config.fragile_items_percent;
+  document.getElementById('gstPercent').value = config.gst_percent;
+  document.getElementById('notes').value = config.notes || '';
+  
+  document.getElementById('configModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('configModal').classList.remove('active');
+  currentEditId = null;
+}
+
+// ========================================
+// CRUD OPERATIONS
+// ========================================
+async function saveConfig() {
+  const form = document.getElementById('configForm');
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+  
+  const data = {
+    config_name: document.getElementById('configName').value,
+    city: document.getElementById('city').value || null,
+    is_active: document.getElementById('isActive').checked,
+    is_default: document.getElementById('isDefault').checked,
+    base_1bhk: parseFloat(document.getElementById('base1bhk').value),
+    base_2bhk: parseFloat(document.getElementById('base2bhk').value),
+    base_3bhk: parseFloat(document.getElementById('base3bhk').value),
+    base_4bhk: parseFloat(document.getElementById('base4bhk').value),
+    base_5bhk: parseFloat(document.getElementById('base5bhk').value),
+    rate_per_km_local: parseFloat(document.getElementById('rateLocal').value),
+    rate_per_km_regional: parseFloat(document.getElementById('rateRegional').value),
+    rate_per_km_intercity: parseFloat(document.getElementById('rateIntercity').value),
+    floor_charge_no_lift: parseFloat(document.getElementById('floorCharge').value),
+    packing_material_percent: parseFloat(document.getElementById('packingPercent').value),
+    fragile_items_percent: parseFloat(document.getElementById('fragilePercent').value),
+    gst_percent: parseFloat(document.getElementById('gstPercent').value),
+    notes: document.getElementById('notes').value || null
+  };
+  
+  try {
+    const saveBtn = document.getElementById('saveButtonText');
+    saveBtn.textContent = 'Saving...';
+    
+    if (currentEditId) {
+      await apiCall(`/api/admin/pricing/${currentEditId}`, 'PUT', data);
+      showAlert('Pricing configuration updated successfully!', 'success');
+    } else {
+      await apiCall('/api/admin/pricing', 'POST', data);
+      showAlert('Pricing configuration created successfully!', 'success');
+    }
+    
+    closeModal();
+    await loadConfigs();
+    saveBtn.textContent = 'Save Configuration';
+  } catch (error) {
+    console.error('Error saving config:', error);
+    showAlert('Failed to save: ' + error.message, 'error');
+    document.getElementById('saveButtonText').textContent = 'Save Configuration';
+  }
+}
+
+async function toggleActive(id, newState) {
+  try {
+    await apiCall(`/api/admin/pricing/${id}`, 'PUT', { is_active: newState });
+    showAlert(`Configuration ${newState ? 'activated' : 'deactivated'} successfully!`, 'success');
+    await loadConfigs();
+  } catch (error) {
+    console.error('Error toggling active:', error);
+    showAlert('Failed to update: ' + error.message, 'error');
+  }
+}
+
+async function deleteConfig(id) {
+  if (!confirm('Are you sure you want to delete this pricing configuration? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    await apiCall(`/api/admin/pricing/${id}`, 'DELETE');
+    showAlert('Pricing configuration deleted successfully!', 'success');
+    await loadConfigs();
+  } catch (error) {
+    console.error('Error deleting config:', error);
+    showAlert('Failed to delete: ' + error.message, 'error');
+  }
+}
+
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
+function showAlert(message, type = 'info') {
+  const container = document.getElementById('alertContainer');
+  const alert = document.createElement('div');
+  alert.className = `alert alert-${type}`;
+  alert.textContent = message;
+  container.appendChild(alert);
+  
+  setTimeout(() => {
+    alert.remove();
+  }, 5000);
+}
+
+function showLoading(show) {
+  document.getElementById('loadingContainer').style.display = show ? 'block' : 'none';
+  document.getElementById('configsContainer').style.display = show ? 'none' : 'block';
+}
+
+function formatNumber(num) {
+  return new Intl.NumberFormat('en-IN').format(num);
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Close modal on outside click
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal')) {
+    closeModal();
+  }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeModal();
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,5 +1,8 @@
 const db = require('../../config/db');
 const activities = require('./activitiesController');
+const agentAssignment = require('./agentAssignmentController');
+const { autoAssignAgent } = require('../services/agentAssignment');
+const pricingCalculator = require('./pricingCalculator');
 
 // Customer: get own moves
 exports.getAll = async (req, res) => {
@@ -67,10 +70,18 @@ exports.create = async (req, res) => {
           from_city, to_city, from_lat, from_lng, to_lat, to_lng,
           floor_from, floor_to, has_lift_from, has_lift_to, bhk_type } = req.body;
   try {
-    // Intra-city check if flag enabled
-    const flag = await db.query("SELECT enabled FROM feature_flags WHERE key='intra_city_only'");
+    // Intra-city validation - check feature flag with fallback
+    let intraCityOnly = false;
+    try {
+      const flag = await db.query("SELECT enabled FROM feature_flags WHERE key='intra_city_only'");
+      intraCityOnly = flag.rows[0]?.enabled || false;
+    } catch(flagErr) {
+      // Feature flags table doesn't exist - disable restriction
+      console.log('Feature flags table not found, allowing all moves');
+      intraCityOnly = false;
+    }
     
-    if (flag.rows[0]?.enabled) {
+    if (intraCityOnly) {
       // Require cities to be provided when feature flag is enabled
       if (!from_city || !to_city) {
         return res.status(400).json({
@@ -88,24 +99,75 @@ exports.create = async (req, res) => {
         });
       }
     }
+    
+    // Create move with status 'active' (new flow: agent visits first, no upfront payment)
     const result = await db.query(
       `INSERT INTO moves (user_id,title,from_address,to_address,move_date,status,payment_status,
         from_city,to_city,from_lat,from_lng,to_lat,to_lng,floor_from,floor_to,has_lift_from,has_lift_to,bhk_type)
-       VALUES ($1,$2,$3,$4,$5,'payment_pending','pending',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,'active','pending',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
       [req.user.id,title,from_address,to_address,move_date,
        from_city||null,to_city||null,from_lat||null,from_lng||null,to_lat||null,to_lng||null,
        floor_from||0,floor_to||0,has_lift_from||false,has_lift_to||false,bhk_type||null]
     );
     const move = result.rows[0];
+    
+    // Log move creation activity
     await activities.create(move.id, req.user.id, 'customer', 'move_created',
       'Move request created', `From ${from_address} to ${to_address}`, {}
     );
-    res.status(201).json(move);
+    
+    // CALCULATE PRICING ESTIMATE
+    let priceEstimate = null;
+    try {
+      priceEstimate = await pricingCalculator.calculateMoveEstimate({
+        move_id: move.id,
+        bhk_type: bhk_type || '2bhk',
+        from_city,
+        to_city,
+        from_lat,
+        from_lng,
+        to_lat,
+        to_lng,
+        floor_from: floor_from || 0,
+        floor_to: floor_to || 0,
+        has_lift_from: has_lift_from || false,
+        has_lift_to: has_lift_to || false,
+        has_fragile: false // Can be added to form later
+      });
+      
+      console.log(`💰 Estimate calculated for move ${move.id}: ₹${priceEstimate.estimated_min.toLocaleString()} - ₹${priceEstimate.estimated_max.toLocaleString()}`);
+    } catch (priceErr) {
+      console.error('⚠️ Pricing calculation failed:', priceErr.message);
+      // Continue without estimate - agent will quote manually
+    }
+    
+    // AUTO-ASSIGN AGENT immediately
+    const assignmentResult = await agentAssignment.autoAssignAgent(move.id);
+    
+    // Prepare response with agent info and pricing estimate
+    const response = {
+      ...move,
+      auto_assignment: assignmentResult,
+      price_estimate: priceEstimate ? {
+        estimated_min: priceEstimate.estimated_min,
+        estimated_mid: priceEstimate.estimated_mid,
+        estimated_max: priceEstimate.estimated_max,
+        breakdown: priceEstimate.breakdown
+      } : null
+    };
+    
+    if (assignmentResult.success) {
+      console.log(`✅ Move ${move.id} created and agent auto-assigned: ${assignmentResult.agent_name}`);
+    } else {
+      console.log(`⚠️ Move ${move.id} created but auto-assignment failed: ${assignmentResult.reason}`);
+    }
+    
+    res.status(201).json(response);
   } catch(err) {
+    console.error('Move creation error:', err);
     res.status(500).json({ error: 'Failed to create move' });
   }
 };
-
 exports.getOne = async (req, res) => {
   try {
     let result;

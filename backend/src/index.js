@@ -11,6 +11,7 @@ const furnitureRoutes = require('./routes/furniture');
 const reportRoutes = require('./routes/reports');
 const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
+const adminPricingRoutes = require('./routes/adminPricing');
 const featureFlagsRoutes = require('./routes/featureFlags');
 const activitiesRoutes = require('./routes/activities');
 const notificationsRoutes = require('./routes/notifications');
@@ -20,6 +21,7 @@ const documentsRoutes = require('./routes/documents');
 const pricingRoutes = require('./routes/pricing');
 const quotesRoutes = require('./routes/quotes');
 const plansRoutes  = require('./routes/plans');
+const agentAssignmentRoutes = require('./routes/agentAssignment');
 
 const app = express();
 
@@ -38,6 +40,7 @@ app.use('/api/furniture', furnitureRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/pricing', adminPricingRoutes);
 app.use('/api/feature-flags', featureFlagsRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/notifications', notificationsRoutes);
@@ -47,6 +50,7 @@ app.use('/api/documents', documentsRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/quotes', quotesRoutes);
 app.use('/api/plans',  plansRoutes);
+app.use('/api/agent-assignment', agentAssignmentRoutes);
 
 // Serve PWA static files (manifest, sw, icons, index)
 app.use(express.static(path.join(__dirname, '../public')));
@@ -54,6 +58,11 @@ app.use(express.static(path.join(__dirname, '../public')));
 // Admin Panel UI
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// Pricing Admin UI
+app.get('/admin/pricing', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/pricing-admin.html'));
 });
 
 // API Tester UI

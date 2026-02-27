@@ -1142,6 +1142,7 @@ body {
         <button class="admin-tab" id="atab-moves" onclick="switchAdminTab('moves')" style="flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">Moves</button>
         <button class="admin-tab" id="atab-payments" onclick="switchAdminTab('payments')" style="flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">Payments</button>
         <button class="admin-tab" id="atab-users" onclick="switchAdminTab('users')" style="flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">Users</button>
+        <button class="admin-tab" id="atab-pricing" onclick="switchAdminTab('pricing')" style="flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">💰 Pricing</button>
         <button class="admin-tab" id="atab-flags" onclick="switchAdminTab('flags')" style="flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;color:var(--sub);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">⚑ Flags</button>
       </div>
       <div id="adminContent"><div style="text-align:center;padding:40px"><div class="spinner"></div></div></div>
@@ -1354,19 +1355,33 @@ body {
 <div class="modal-overlay" id="cashModal" onclick="closeModal('cashModal')">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
-    <div class="modal-title">Cash / Offline Payment</div>
-    <div class="field"><label>Amount Received (₹)</label><input type="number" id="cashAmount" placeholder="0.00" inputmode="decimal"/></div>
+    <div class="modal-title">Mark Full Payment Received</div>
+    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:#78716c">
+      💡 Enter the <strong>exact amount</strong> from your final quote. Payment will be auto-verified and move will start immediately.
+    </div>
+    <div class="field">
+      <label>Amount Received (₹) *</label>
+      <input type="number" id="cashAmount" placeholder="0.00" inputmode="decimal" style="font-size:18px;font-weight:700;text-align:center"/>
+    </div>
     <div class="field"><label>Payment Mode</label>
       <select id="cashMode">
         <option value="cash">Cash</option>
-        <option value="upi_offline">UPI (shown to agent)</option>
+        <option value="upi">UPI / Digital Payment</option>
         <option value="cheque">Cheque</option>
         <option value="bank_transfer">Bank Transfer</option>
       </select>
     </div>
-    <div class="field"><label>Notes</label><input type="text" id="cashNotes" placeholder="Reference number, remarks…"/></div>
-    <div class="lock-warn">⏱ Once submitted, this entry is locked after 10 minutes and cannot be edited.</div>
-    <button class="btn btn-primary" onclick="submitCashPayment()" id="cashSubmitBtn" style="margin-top:16px">Mark Payment Received</button>
+    <div class="field"><label>Notes (Optional)</label><input type="text" id="cashNotes" placeholder="Transaction ID, reference number..."/></div>
+    <button class="btn btn-primary" onclick="submitCashPayment()" id="cashSubmitBtn" style="margin-top:16px">✅ Confirm & Start Move</button>
+  </div>
+</div>
+
+<!-- MODAL: Submit Quote (Agent) -->
+<div class="modal-overlay" id="submitQuoteModal" onclick="closeModal('submitQuoteModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Submit Final Quote</div>
+    <div id="submitQuoteContent"></div>
   </div>
 </div>
 
@@ -2163,7 +2178,7 @@ async function openMove(id) {
               Mark Move as Complete
             </button>
           </div>` : ''}
-          ${m.agent_id ? `<div class="detail-card">
+          ${(m.agent_id && user?.role !== 'agent') ? `<div class="detail-card">
             <div class="detail-card-label">Assigned Agent</div>
             <div style="display:flex;align-items:center;gap:12px">
               <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;flex-shrink:0">${(m.agent_name||'A')[0].toUpperCase()}</div>
@@ -2181,7 +2196,7 @@ async function openMove(id) {
                 </a>
               </div>` : ''}
             </div>
-          </div>` : `<div class="detail-card">
+          </div>` : user?.role !== 'agent' ? `<div class="detail-card">
             <div class="detail-card-label">Assigned Agent</div>
             <div style="display:flex;align-items:center;gap:10px">
               <div style="width:36px;height:36px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:18px">👤</div>
@@ -2190,7 +2205,7 @@ async function openMove(id) {
                 <div style="font-size:12px;color:var(--dim)">Admin will assign an agent soon</div>
               </div>
             </div>
-          </div>`}
+          </div>` : ''}
         </div>
       </div>
     `;
@@ -3476,25 +3491,53 @@ async function submitOnlinePayment(moveId, amount) {
 
 function openCashModal(moveId) {
   window._cashMoveId = moveId;
+  
+  // Get quote total from current payment screen data
+  const quoteTotal = window._currentQuoteTotal || 0;
+  const estimatedCost = window._currentEstimatedCost || 0;
+  const suggestedAmount = quoteTotal || estimatedCost || 0;
+  
+  // Pre-fill amount field
+  setTimeout(() => {
+    const amountField = document.getElementById('cashAmount');
+    if (amountField && suggestedAmount > 0) {
+      amountField.value = suggestedAmount;
+    }
+  }, 100);
+  
   openModal('cashModal');
 }
 
 async function submitCashPayment() {
   const amount = document.getElementById('cashAmount').value;
-  if (!amount || parseFloat(amount) <= 0) { toast('Enter a valid amount', 'error'); return; }
+  if (!amount || parseFloat(amount) <= 0) { 
+    toast('Enter a valid amount', 'error'); 
+    return; 
+  }
+  
   const btn = document.getElementById('cashSubmitBtn');
-  btn.disabled = true; btn.textContent = 'Submitting...';
+  btn.disabled = true; btn.textContent = 'Processing...';
+  
   try {
     const data = await api('POST', `/api/payments/move/${window._cashMoveId}/cash`, {
       amount: parseFloat(amount),
       payment_mode: document.getElementById('cashMode').value,
       notes: document.getElementById('cashNotes').value,
     });
+    
     closeModal('cashModal');
+    
+    // Reset cash modal fields
+    document.getElementById('cashAmount').value = '';
+    document.getElementById('cashNotes').value = '';
+    document.getElementById('cashMode').value = 'cash';
+    
     toast(data.message, 'success');
+    
+    // Refresh payment screen
     await openPaymentScreen(window._cashMoveId);
   } catch(e) {
-    toast(e.message, 'error');
+    toast(e.message || 'Failed to mark payment', 'error');
     btn.disabled = false; btn.textContent = 'Mark Payment Received';
   }
 }
@@ -3611,11 +3654,16 @@ async function openPaymentScreen(moveId) {
 
 function renderPaymentScreen(data, quote, plan) {
   window._currentPlan = plan || null;
+  window._currentQuoteTotal = quote ? parseFloat(quote.total) : 0;
+  window._currentEstimatedCost = parseFloat(data.estimated_cost || 0);
+  
   const content = document.getElementById('paymentContent');
-  const status       = data.move_status || '';
+  const status       = data.move_status || data.status || '';
   const isPending    = ['payment_pending','created'].includes(status);
   const isVerifying  = status === 'payment_under_verification';
-  const isActive     = ['active','in_progress','completed'].includes(status);
+  const isActive     = status === 'active';
+  const isInProgress = status === 'in_progress';
+  const isCompleted  = status === 'completed';
   const isCustomer   = user?.role === 'customer';
   const isAgent      = user?.role === 'agent';
   const isAdmin      = user?.role === 'admin';
@@ -3625,7 +3673,7 @@ function renderPaymentScreen(data, quote, plan) {
   const priceIsSet   = amtTotal > 0;
 
   // ── Step indicator ───────────────────────────────────────────
-  const steps = [
+  const customerSteps = [
     { key:'price_set',   label:'Price Set',       done: priceIsSet },
     { key:'token',       label:'Token Paid',       done: !!data.token_paid },
     { key:'active',      label:'Move Active',      done: isActive },
@@ -3633,6 +3681,16 @@ function renderPaymentScreen(data, quote, plan) {
     { key:'balance',     label:'Balance Paid',     done: status === 'in_progress' || status === 'completed' },
     { key:'inprogress',  label:'In Progress',      done: status === 'in_progress' || status === 'completed' },
   ];
+  
+  const agentSteps = [
+    { key:'assigned',    label:'Assigned',         done: true },
+    { key:'visited',     label:'Site Visit',       done: !!quote },
+    { key:'quoted',      label:'Quote Submitted',  done: !!quote },
+    { key:'paid',        label:'Payment Received', done: status === 'in_progress' || status === 'completed' },
+    { key:'inprogress',  label:'In Progress',      done: status === 'in_progress' || status === 'completed' },
+  ];
+  
+  const steps = (isAgent || isAdmin) ? agentSteps : customerSteps;
   const stepHtml = `
   <div style="display:flex;gap:0;margin-bottom:24px;overflow-x:auto;padding-bottom:4px">
     ${steps.map((s,i) => `
@@ -3647,6 +3705,7 @@ function renderPaymentScreen(data, quote, plan) {
   </div>`;
 
   // ── Amount summary card ──────────────────────────────────────
+  const estimatedCost = parseFloat(data.estimated_cost || 0);
   const quotedTotal = quote ? parseFloat(quote.total) : 0;
   const finalTotal  = quotedTotal || amtTotal;
   const balanceDue  = Math.max(0, finalTotal - amtPaid);
@@ -3654,40 +3713,49 @@ function renderPaymentScreen(data, quote, plan) {
   const summaryHtml = `
   <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:16px">
     <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">💰 Payment Summary</div>
-    ${priceIsSet ? `
+    ${estimatedCost > 0 ? `
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
-      <span style="font-size:13px;color:var(--sub)">Confirmed Price</span>
-      <span style="font-size:14px;font-weight:600">₹${amtTotal.toLocaleString('en-IN')}</span>
-    </div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
-      <span style="font-size:13px;color:var(--sub)">Token (10%)</span>
-      <span style="font-size:14px;font-weight:600;color:var(--accent)">₹${tokenAmt.toLocaleString('en-IN')}</span>
-    </div>` : `<div style="padding:12px 0;color:var(--sub);font-size:13px">⏳ Awaiting price confirmation from admin</div>`}
+      <span style="font-size:13px;color:var(--sub)">${isAgent || isAdmin ? 'Customer Estimate' : 'Initial Estimate'}</span>
+      <span style="font-size:14px;font-weight:600;color:#64748b">₹${estimatedCost.toLocaleString('en-IN')}</span>
+    </div>` : ''}
     ${quotedTotal > 0 ? `
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
-      <span style="font-size:13px;color:var(--sub)">Agent's Final Price</span>
-      <span style="font-size:14px;font-weight:600;color:#7c3aed">₹${quotedTotal.toLocaleString('en-IN')}</span>
+      <span style="font-size:13px;color:var(--sub)">Final Quote</span>
+      <span style="font-size:14px;font-weight:700;color:#7c3aed">₹${quotedTotal.toLocaleString('en-IN')}</span>
+    </div>` : isAgent || isAdmin ? `
+    <div style="padding:12px 0;color:var(--sub);font-size:13px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px;margin:8px 0">
+      📋 Visit customer location to assess items and determine final price
     </div>` : ''}
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
       <span style="font-size:13px;color:var(--sub)">Amount Paid</span>
       <span style="font-size:14px;font-weight:700;color:var(--success)">₹${amtPaid.toLocaleString('en-IN')}</span>
     </div>
-    ${balanceDue > 0 ? `
+    ${balanceDue > 0 && quotedTotal > 0 ? `
     <div style="display:flex;justify-content:space-between;padding:10px 0">
       <span style="font-size:14px;font-weight:700">Balance Due</span>
       <span style="font-size:18px;font-weight:800;color:${status==='in_progress'||status==='completed'?'var(--success)':'var(--error)'}">₹${balanceDue.toLocaleString('en-IN')}</span>
-    </div>` : `<div style="padding:8px 0;font-size:13px;color:var(--success);font-weight:600">✅ Fully Paid</div>`}
+    </div>` : balanceDue === 0 && amtPaid > 0 ? `<div style="padding:8px 0;font-size:13px;color:var(--success);font-weight:600">✅ Fully Paid</div>` : ''}
   </div>`;
 
   // ── Status banner ─────────────────────────────────────────────
   const bannerCfg = {
-    payment_pending:             { bg:'#fffbeb', border:'#fde68a', icon:'💰', color:'#b45309', msg: priceIsSet ? `Pay ₹${tokenAmt.toLocaleString('en-IN')} token to confirm your booking` : 'Admin will confirm your price shortly' },
-    payment_under_verification:  { bg:'#eff6ff', border:'#bfdbfe', icon:'🔍', color:'#1d4ed8', msg:'Payment submitted — admin is verifying' },
-    active:                      { bg:'#f0fdf4', border:'#bbf7d0', icon:'✅', color:'#15803d', msg:'Move active! Agent will visit for final quote' },
-    in_progress:                 { bg:'#f0fdf4', border:'#bbf7d0', icon:'🚛', color:'#15803d', msg:'Move is in progress' },
-    completed:                   { bg:'#ede9fe', border:'#ddd6fe', icon:'🎉', color:'#6d28d9', msg:'Move completed!' },
+    payment_pending:             { bg:'#fffbeb', border:'#fde68a', icon:'💰', color:'#b45309', msg: priceIsSet ? `Pay ₹${tokenAmt.toLocaleString('en-IN')} token (10%) to confirm your booking and activate your move` : 'Admin is reviewing your request and will confirm the price shortly' },
+    payment_under_verification:  { bg:'#eff6ff', border:'#bfdbfe', icon:'🔍', color:'#1d4ed8', msg:'Token payment submitted and under verification by admin' },
+    active:                      { bg:'#f0fdf4', border:'#bbf7d0', icon:'✅', color:'#15803d', msg: quotedTotal > 0 ? 'Agent has submitted final quote. Pay balance to start your move' : 'Move activated! Agent will visit soon to assess items and provide final quote' },
+    in_progress:                 { bg:'#f0fdf4', border:'#bbf7d0', icon:'🚛', color:'#15803d', msg:'Your move is in progress. Agent is coordinating the relocation' },
+    completed:                   { bg:'#ede9fe', border:'#ddd6fe', icon:'🎉', color:'#6d28d9', msg:'Move completed successfully!' },
   };
-  const bc = bannerCfg[status] || { bg:'#f1f5f9', border:'#e2e8f0', icon:'📦', color:'var(--sub)', msg:status };
+  
+  // Agent-specific banners
+  const agentBannerCfg = {
+    created:                     { bg:'#fffbeb', border:'#fde68a', icon:'📋', color:'#b45309', msg: 'New move request - Review customer details and prepare for site visit' },
+    payment_pending:             { bg:'#fffbeb', border:'#fde68a', icon:'📋', color:'#b45309', msg: 'Visit customer location, assess items, and submit final quote' },
+    active:                      { bg:'#f0fdf4', border:'#bbf7d0', icon:'💰', color:'#15803d', msg: window._currentQuoteTotal > 0 ? `Quote submitted: ₹${window._currentQuoteTotal.toLocaleString('en-IN')}. Collect payment to start move` : 'Submit final quote after site visit, then collect payment' },
+    in_progress:                 { bg:'#dbeafe', border:'#93c5fd', icon:'🚛', color:'#1e40af', msg:'Payment received! Coordinate relocation and delivery' },
+    completed:                   { bg:'#ede9fe', border:'#ddd6fe', icon:'🎉', color:'#6d28d9', msg:'Move completed successfully!' },
+  };
+  
+  const bc = (isAgent || isAdmin) ? (agentBannerCfg[status] || { bg:'#f1f5f9', border:'#e2e8f0', icon:'📦', color:'var(--sub)', msg:status }) : (bannerCfg[status] || { bg:'#f1f5f9', border:'#e2e8f0', icon:'📦', color:'var(--sub)', msg:status });
   const bannerHtml = `
   <div style="padding:14px 16px;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;gap:12px;
     background:${bc.bg};border:1.5px solid ${bc.border}">
@@ -3706,8 +3774,11 @@ function renderPaymentScreen(data, quote, plan) {
     ctaHtml = `
     <div style="padding:16px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;text-align:center;margin-bottom:16px">
       <div style="font-size:32px;margin-bottom:8px">⏳</div>
-      <div style="font-weight:700;margin-bottom:6px">Waiting for price confirmation</div>
-      <div style="font-size:13px;color:var(--sub)">Our team will review your move details and confirm the price shortly. You'll get a notification.</div>
+      <div style="font-weight:700;margin-bottom:6px">Waiting for Price Confirmation</div>
+      <div style="font-size:13px;color:var(--sub);margin-bottom:8px">Our team is reviewing your move details${estimatedCost > 0 ? ` (Estimate: ₹${estimatedCost.toLocaleString('en-IN')})` : ''} and will confirm the final price shortly.</div>
+      <div style="font-size:12px;color:#78716c;background:#fef3c7;padding:8px;border-radius:6px;margin-top:8px">
+        💡 Once confirmed, you'll pay 10% token to activate your move
+      </div>
     </div>`;
   }
 
@@ -3716,10 +3787,13 @@ function renderPaymentScreen(data, quote, plan) {
     ctaHtml = `
     <button onclick="openTokenPayModal('${data.move_id}',${tokenAmt})"
       style="width:100%;padding:16px;background:var(--accent);border:none;border-radius:14px;color:#fff;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:12px;box-shadow:0 4px 14px rgba(37,99,235,0.25)">
-      🔐 Pay ₹${tokenAmt.toLocaleString('en-IN')} to Confirm Booking →
+      🔐 Pay ₹${tokenAmt.toLocaleString('en-IN')} Token to Activate Move →
     </button>
-    <div style="text-align:center;font-size:12px;color:var(--sub);margin-bottom:20px">
-      This is 10% of your confirmed price. Pay via UPI or bank transfer and submit the reference.
+    <div style="text-align:center;font-size:12px;color:var(--sub);margin-bottom:8px">
+      This is 10% of the confirmed price (₹${amtTotal.toLocaleString('en-IN')}) to activate your booking
+    </div>
+    <div style="font-size:11px;color:#78716c;background:#eff6ff;padding:8px;border-radius:6px;margin-bottom:20px;text-align:center">
+      💡 After token payment, agent will visit to assess actual items and provide final quote
     </div>`;
   }
 
@@ -3748,55 +3822,60 @@ function renderPaymentScreen(data, quote, plan) {
     </div>`;
   }
 
-  // Agent/Admin: set price (when no price yet)
-  if ((isAgent || isAdmin) && !priceIsSet) {
-    ctaHtml += `
-    <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:14px;padding:16px;margin-bottom:16px">
-      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px">💰 Set Confirmed Price</div>
-      <div style="font-size:12px;color:var(--sub);margin-bottom:12px">Set the final price so the customer can pay the 10% token to confirm their booking.</div>
-      <button onclick="openSetPricingModal('${data.move_id}')" style="padding:11px 20px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
-        📝 Set Price
-      </button>
-    </div>`;
-  }
-
-  // Agent/Admin: move active → submit quote (total amount) + mark payment buttons
-  if ((isAgent || isAdmin) && isActive) {
-    // Quote submission / revision
-    ctaHtml += `
-    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:14px;padding:16px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px">
-        ${quote ? '✏️ Revise Quote' : '📋 Submit Quote'}
-      </div>
-      <div style="font-size:12px;color:var(--sub);margin-bottom:12px">
-        ${quote ? `Current total: ₹${quote ? parseFloat(quote.total).toLocaleString('en-IN') : '—'}. Update if needed.` : 'Enter the total amount you need from the customer.'}
-      </div>
-      <button onclick="openSubmitQuoteModal('${data.move_id}', ${quote ? parseFloat(quote.total) : 0})"
-        style="padding:11px 20px;background:#16a34a;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
-        ${quote ? '✏️ Update Total' : '📝 Set Total Amount'}
-      </button>
-    </div>`;
-
-    // Payment collection — only show after quote submitted and balance still due
-    if (quote && balanceDue > 0) {
-      const tokenSuggestion = Math.round(parseFloat(quote.total) * 0.1);
+  // Agent/Admin: Actions for managing move
+  if (isAgent || isAdmin) {
+    // Submit quote button - always show unless move is completed
+    if (!isCompleted) {
       ctaHtml += `
-      <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:14px;padding:16px;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:700;color:#b45309;margin-bottom:4px">💵 Collect Payment</div>
-        <div style="font-size:12px;color:var(--sub);margin-bottom:12px">Balance due: ₹${balanceDue.toLocaleString('en-IN')}</div>
-        <div style="display:flex;gap:10px">
-          <button onclick="openAgentMarkPaymentModal('${data.move_id}', 'token', ${tokenSuggestion})"
-            style="flex:1;padding:11px 8px;background:#fef9c3;border:1.5px solid #fde68a;border-radius:10px;color:#b45309;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
-            🔐 Token Received
-          </button>
-          <button onclick="openAgentMarkPaymentModal('${data.move_id}', 'full', ${balanceDue})"
-            style="flex:1;padding:11px 8px;background:#16a34a;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
-            ✅ Full Payment Received
-          </button>
+      <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:14px;padding:16px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px">
+          ${quote ? '✏️ Update Final Quote' : '📋 Submit Final Quote'}
         </div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:12px">
+          ${quote ? `Current quote: ₹${parseFloat(quote.total).toLocaleString('en-IN')}. Update if needed based on actual items.` : 'After assessing items at customer location, enter the final amount to be collected.'}
+        </div>
+        <button onclick="openSubmitQuoteModal('${data.move_id}', ${quote ? parseFloat(quote.total) : window._currentEstimatedCost || 0})"
+          style="padding:11px 20px;background:#16a34a;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+          ${quote ? '✏️ Update Quote' : '📝 Submit Final Quote'}
+        </button>
       </div>`;
     }
+
+    // Payment collection button
+    if (quote && !isInProgress && !isCompleted) {
+      // Quote exists but payment not yet received
+      const quoteTotal = parseFloat(quote.total);
+      ctaHtml += `
+      <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:14px;padding:16px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:#b45309;margin-bottom:4px">💵 Collect Full Payment</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:4px">Final quote amount: ₹${quoteTotal.toLocaleString('en-IN')}</div>
+        <div style="font-size:11px;color:#78716c;background:#fef3c7;padding:6px 8px;border-radius:6px;margin-bottom:12px">
+          ⚠️ Collect full payment before starting the move. Once marked, move will automatically start.
+        </div>
+        <button onclick="openCashModal('${data.move_id}')"
+          style="width:100%;padding:12px;background:#16a34a;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">
+          💵 Mark Full Payment Received (₹${quoteTotal.toLocaleString('en-IN')})
+        </button>
+      </div>`;
+    } else if (isInProgress || isCompleted) {
+      // Payment received confirmation
+      ctaHtml += `
+      <div style="background:#dcfce7;border:1.5px solid #86efac;border-radius:14px;padding:16px;margin-bottom:12px;text-align:center">
+        <div style="font-size:24px;margin-bottom:8px">✅</div>
+        <div style="font-size:14px;font-weight:700;color:#15803d;margin-bottom:4px">Payment Received</div>
+        <div style="font-size:13px;color:#166534">₹${amtPaid.toLocaleString('en-IN')} collected and verified</div>
+        <div style="font-size:11px;color:#15803d;margin-top:8px">Move ${isCompleted ? 'completed' : 'in progress'}</div>
+      </div>`;
+    } else if (!quote) {
+      // No quote yet - show hint
+      ctaHtml += `
+      <div style="background:#fef3c7;border:1.5px solid #fde68a;border-radius:14px;padding:14px;margin-bottom:12px;text-align:center">
+        <div style="font-size:13px;color:#78716c">
+          👆 Submit final quote first, then collect payment
+        </div>
+      </div>`;
   }
+    }
 
   // ── Agent Quote detail ────────────────────────────────────────
   const quoteHtml = quote ? `
@@ -4454,6 +4533,7 @@ function switchAdminTab(tab) {
     '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
   ({ overview: renderAdminOverview, moves: renderAdminMoves,
      payments: renderAdminPayments, users: renderAdminUsers,
+     pricing: renderAdminPricing,
      flags: renderAdminFlags }[tab] || (() => {}))();
 }
 
@@ -4681,21 +4761,41 @@ async function renderAdminPayments() {
 async function renderAdminUsers() {
   const c = document.getElementById('adminContent');
   try {
-    const users = await api('GET','/api/admin/users');
+    const response = await api('GET','/api/admin/users');
+    
+    // Ensure we have an array
+    const users = Array.isArray(response) ? response : (response.users || []);
+    
+    if (!Array.isArray(users)) {
+      console.error('Invalid response format:', response);
+      throw new Error('Invalid response format from server');
+    }
+    
     adminData.users = users;
     const roleColor = { admin:'#a78bfa', agent:'var(--accent)', customer:'var(--accent2)' };
+    const roleBg = { admin:'#f3f0ff', agent:'#eff6ff', customer:'#fef3c7' };
     const grouped = {
       admin: users.filter(u=>u.role==='admin'),
       agent: users.filter(u=>u.role==='agent'),
       customer: users.filter(u=>u.role==='customer'),
     };
-    c.innerHTML = ['admin','agent','customer'].map((role,i) => `
+    
+    c.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div>
+          <h2 style="font-size:20px;font-weight:700;margin:0;color:var(--fg)">Users Management</h2>
+          <p style="font-size:13px;color:var(--sub);margin:4px 0 0">Manage admins, agents, and customers. Roles are permanent once assigned.</p>
+        </div>
+        <button onclick="openCreateUserModal()" class="btn-primary" style="padding:10px 20px">+ New User</button>
+      </div>
+      
+      ${['admin','agent','customer'].map((role,i) => `
       ${i>0?'<div style="height:8px"></div>':''}
       <div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.8px;margin-bottom:12px">${role.toUpperCase()}S (${grouped[role].length})</div>
       <div class="card" style="padding:0">
         ${grouped[role].length ? grouped[role].map(u => `
         <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)">
-          <div style="width:36px;height:36px;border-radius:50%;background:${roleColor[u.role]};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">
+          <div style="width:36px;height:36px;border-radius:50%;background:${roleColor[u.role]};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:white">
             ${u.name.split(' ').map(w=>w[0]).join('').substring(0,2)}
           </div>
           <div style="flex:1;min-width:0">
@@ -4703,14 +4803,13 @@ async function renderAdminUsers() {
             <div style="font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.email}</div>
             ${u.total_moves>0?`<div style="font-size:11px;color:var(--dim)">${u.total_moves} moves</div>`:''}
           </div>
-          <select onchange="doChangeUserRole('${u.id}',this.value)"
-            style="background:var(--card2);border:1px solid var(--border);color:${roleColor[u.role]};padding:6px 8px;border-radius:8px;font-family:inherit;font-size:11px;font-weight:700;outline:none;cursor:pointer;flex-shrink:0">
-            <option value="customer" ${u.role==='customer'?'selected':''}>Customer</option>
-            <option value="agent" ${u.role==='agent'?'selected':''}>Agent</option>
-            <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
-          </select>
+          <div style="background:${roleBg[u.role]};border:1px solid ${roleColor[u.role]};color:${roleColor[u.role]};padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;flex-shrink:0;text-transform:capitalize">
+            ${u.role}
+          </div>
+          ${u.role !== 'admin' ? `<button onclick="deleteUser('${u.id}')" style="background:#fee;border:1px solid #fcc;color:#c00;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600">Delete</button>` : ''}
         </div>`).join('') : '<div style="padding:16px;color:var(--dim);font-size:13px;text-align:center">None</div>'}
-      </div>`).join('');
+      </div>`).join('')}
+    `;
   } catch(e) { c.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`; }
 }
 
@@ -4722,11 +4821,43 @@ async function adminVerifyPayment(paymentId, action) {
   } catch(e) { toast(e.message, 'error'); }
 }
 
-async function doChangeUserRole(userId, newRole) {
+// Role changes disabled - roles are permanent once assigned
+
+function openCreateUserModal() {
+  openModal('createUserModal');
+  document.getElementById('createUserForm').reset();
+}
+
+async function createNewUser() {
+  const form = document.getElementById('createUserForm');
+  if (!form.checkValidity()) { form.reportValidity(); return; }
+  
+  const data = {
+    name: document.getElementById('newUserName').value,
+    email: document.getElementById('newUserEmail').value,
+    password: document.getElementById('newUserPassword').value,
+    phone: document.getElementById('newUserPhone').value || null,
+    role: document.getElementById('newUserRole').value
+  };
+  
   try {
-    await api('PATCH', `/api/admin/users/${userId}/role`, { role: newRole });
-    toast(`Role updated to ${newRole} ✓`, 'success');
+    await api('POST', '/api/admin/users/create', data);
+    toast(`${data.role === 'agent' ? 'Agent' : data.role === 'admin' ? 'Sub-admin' : 'User'} created successfully!`, 'success');
+    closeModal('createUserModal');
+    renderAdminUsers();
   } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteUser(userId) {
+  if (!confirm('Delete this user? This action cannot be undone.')) return;
+  try {
+    const response = await api('DELETE', `/api/admin/users/${userId}`);
+    toast('User deleted successfully', 'success');
+    await renderAdminUsers();
+  } catch(e) { 
+    console.error('Delete user error:', e);
+    toast(e.message, 'error'); 
+  }
 }
 
 const FLAG_META = {
@@ -4783,6 +4914,203 @@ async function toggleFlag(key, enabled) {
   } catch(e) { toast(e.message, 'error'); }
 }
 
+// ── PRICING ADMIN ──────────────────────────────────────────────
+let pricingConfigs = [];
+
+async function renderAdminPricing() {
+  const c = document.getElementById('adminContent');
+  c.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+  
+  try {
+    pricingConfigs = await api('GET', '/api/admin/pricing');
+    
+    const activeCount = pricingConfigs.filter(p => p.is_active).length;
+    const cityCount = pricingConfigs.filter(p => p.city).length;
+    const defaultConfig = pricingConfigs.find(p => p.is_default);
+    
+    c.innerHTML = `
+      <div style="margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div>
+            <h2 style="font-size:20px;font-weight:700;margin:0;color:var(--fg)">Pricing Configuration</h2>
+            <p style="font-size:13px;color:var(--sub);margin:4px 0 0">Manage pricing models for different cities and routes</p>
+          </div>
+          <button onclick="openPricingModal()" class="btn-primary" style="padding:10px 20px">+ New Pricing</button>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px">
+          <div class="card" style="background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border:1px solid #93c5fd">
+            <div style="font-size:11px;color:#1e40af;font-weight:600;margin-bottom:8px">TOTAL CONFIGS</div>
+            <div style="font-size:28px;font-weight:700;color:#1e3a8a">${pricingConfigs.length}</div>
+          </div>
+          <div class="card" style="background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border:1px solid #6ee7b7">
+            <div style="font-size:11px;color:#047857;font-weight:600;margin-bottom:8px">ACTIVE</div>
+            <div style="font-size:28px;font-weight:700;color:#065f46">${activeCount}</div>
+          </div>
+          <div class="card" style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:1px solid #fcd34d">
+            <div style="font-size:11px;color:#b45309;font-weight:600;margin-bottom:8px">CITY-SPECIFIC</div>
+            <div style="font-size:28px;font-weight:700;color:#92400e">${cityCount}</div>
+          </div>
+          <div class="card" style="background:linear-gradient(135deg,#fae8ff 0%,#f3e8ff 100%);border:1px solid #d8b4fe">
+            <div style="font-size:11px;color:#7e22ce;font-weight:600;margin-bottom:8px">DEFAULT</div>
+            <div style="font-size:14px;font-weight:700;color:#6b21a8;margin-top:8px">${defaultConfig ? defaultConfig.config_name : 'None'}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="pricingGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:20px">
+        ${pricingConfigs.length === 0 ? '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--sub)">No pricing configurations yet. Create your first one!</div>' : 
+          pricingConfigs.map(config => `
+            <div class="card" style="background:${config.is_default ? 'linear-gradient(135deg,#ecfdf5 0%,#ffffff 100%)' : 'white'};
+                                        border:2px solid ${config.is_default ? '#10b981' : '#e2e8f0'};
+                                        ${!config.is_active ? 'opacity:0.6;' : ''}">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px">
+                <div>
+                  <div style="font-size:16px;font-weight:600">${config.config_name}</div>
+                  <div style="font-size:13px;color:var(--sub);margin-top:4px">${config.city || 'National Default'}</div>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  ${config.is_default ? '<span class="badge badge-green">Default</span>' : ''}
+                  ${config.is_active ? '<span class="badge badge-blue">Active</span>' : '<span class="badge badge-slate">Inactive</span>'}
+                </div>
+              </div>
+              
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px">
+                <div style="background:#f8fafc;padding:10px;border-radius:6px">
+                  <div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:4px">1 BHK</div>
+                  <div style="font-size:15px;font-weight:600">₹${new Intl.NumberFormat('en-IN').format(config.base_1bhk)}</div>
+                </div>
+                <div style="background:#f8fafc;padding:10px;border-radius:6px">
+                  <div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:4px">2 BHK</div>
+                  <div style="font-size:15px;font-weight:600">₹${new Intl.NumberFormat('en-IN').format(config.base_2bhk)}</div>
+                </div>
+                <div style="background:#f8fafc;padding:10px;border-radius:6px">
+                  <div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:4px">3 BHK</div>
+                  <div style="font-size:15px;font-weight:600">₹${new Intl.NumberFormat('en-IN').format(config.base_3bhk)}</div>
+                </div>
+                <div style="background:#f8fafc;padding:10px;border-radius:6px">
+                  <div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:4px">Local Rate</div>
+                  <div style="font-size:15px;font-weight:600;color:#2563eb">₹${config.rate_per_km_local}/km</div>
+                </div>
+              </div>
+              
+              <div style="display:flex;gap:8px;padding-top:16px;border-top:1px solid #f1f5f9">
+                <button onclick='editPricing("${config.id}")' class="btn-outline" style="flex:1;font-size:13px">✏️ Edit</button>
+                <button onclick='togglePricingActive("${config.id}",${!config.is_active})' class="btn-outline" style="flex:1;font-size:13px">
+                  ${config.is_active ? '⏸️ Deactivate' : '▶️ Activate'}
+                </button>
+                ${!config.is_default ? `<button onclick='deletePricing("${config.id}")' class="btn-outline" style="flex:1;font-size:13px;color:#ef4444">🗑️ Delete</button>` : ''}
+              </div>
+            </div>
+          `).join('')}
+      </div>
+    `;
+  } catch(e) {
+    c.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+  }
+}
+
+function openPricingModal() {
+  openModal('pricingModal');
+  document.getElementById('pricingForm').reset();
+  document.getElementById('pricingId').value = '';
+  document.getElementById('pricingIsActive').checked = true;
+  document.getElementById('pricingIsDefault').checked = false;
+  // Set defaults
+  document.getElementById('pricingBase1').value = 5500;
+  document.getElementById('pricingBase2').value = 10000;
+  document.getElementById('pricingBase3').value = 16000;
+  document.getElementById('pricingBase4').value = 21000;
+  document.getElementById('pricingBase5').value = 28000;
+  document.getElementById('pricingRateLocal').value = 12;
+  document.getElementById('pricingRateRegional').value = 20;
+  document.getElementById('pricingRateIntercity').value = 15;
+  document.getElementById('pricingFloorCharge').value = 400;
+  document.getElementById('pricingPacking').value = 25;
+  document.getElementById('pricingFragile').value = 5;
+  document.getElementById('pricingGst').value = 18;
+}
+
+function editPricing(id) {
+  const config = pricingConfigs.find(c => c.id === id);
+  if (!config) return;
+  
+  openModal('pricingModal');
+  document.getElementById('pricingId').value = id;
+  document.getElementById('pricingConfigName').value = config.config_name;
+  document.getElementById('pricingCity').value = config.city || '';
+  document.getElementById('pricingIsActive').checked = config.is_active;
+  document.getElementById('pricingIsDefault').checked = config.is_default;
+  document.getElementById('pricingBase1').value = config.base_1bhk;
+  document.getElementById('pricingBase2').value = config.base_2bhk;
+  document.getElementById('pricingBase3').value = config.base_3bhk;
+  document.getElementById('pricingBase4').value = config.base_4bhk;
+  document.getElementById('pricingBase5').value = config.base_5bhk;
+  document.getElementById('pricingRateLocal').value = config.rate_per_km_local;
+  document.getElementById('pricingRateRegional').value = config.rate_per_km_regional;
+  document.getElementById('pricingRateIntercity').value = config.rate_per_km_intercity;
+  document.getElementById('pricingFloorCharge').value = config.floor_charge_no_lift;
+  document.getElementById('pricingPacking').value = config.packing_material_percent;
+  document.getElementById('pricingFragile').value = config.fragile_items_percent;
+  document.getElementById('pricingGst').value = config.gst_percent;
+  document.getElementById('pricingNotes').value = config.notes || '';
+}
+
+async function savePricing() {
+  const form = document.getElementById('pricingForm');
+  if (!form.checkValidity()) { form.reportValidity(); return; }
+  
+  const data = {
+    config_name: document.getElementById('pricingConfigName').value,
+    city: document.getElementById('pricingCity').value || null,
+    is_active: document.getElementById('pricingIsActive').checked,
+    is_default: document.getElementById('pricingIsDefault').checked,
+    base_1bhk: parseFloat(document.getElementById('pricingBase1').value),
+    base_2bhk: parseFloat(document.getElementById('pricingBase2').value),
+    base_3bhk: parseFloat(document.getElementById('pricingBase3').value),
+    base_4bhk: parseFloat(document.getElementById('pricingBase4').value),
+    base_5bhk: parseFloat(document.getElementById('pricingBase5').value),
+    rate_per_km_local: parseFloat(document.getElementById('pricingRateLocal').value),
+    rate_per_km_regional: parseFloat(document.getElementById('pricingRateRegional').value),
+    rate_per_km_intercity: parseFloat(document.getElementById('pricingRateIntercity').value),
+    floor_charge_no_lift: parseFloat(document.getElementById('pricingFloorCharge').value),
+    packing_material_percent: parseFloat(document.getElementById('pricingPacking').value),
+    fragile_items_percent: parseFloat(document.getElementById('pricingFragile').value),
+    gst_percent: parseFloat(document.getElementById('pricingGst').value),
+    notes: document.getElementById('pricingNotes').value || null
+  };
+  
+  const id = document.getElementById('pricingId').value;
+  try {
+    if (id) {
+      await api('PUT', `/api/admin/pricing/${id}`, data);
+      toast('Pricing updated!', 'success');
+    } else {
+      await api('POST', '/api/admin/pricing', data);
+      toast('Pricing created!', 'success');
+    }
+    closeModal('pricingModal');
+    renderAdminPricing();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function togglePricingActive(id, newState) {
+  try {
+    await api('PUT', `/api/admin/pricing/${id}`, { is_active: newState });
+    toast(`Pricing ${newState ? 'activated' : 'deactivated'}!`, 'success');
+    renderAdminPricing();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deletePricing(id) {
+  if (!confirm('Delete this pricing configuration? This cannot be undone.')) return;
+  try {
+    await api('DELETE', `/api/admin/pricing/${id}`);
+    toast('Pricing deleted!', 'success');
+    renderAdminPricing();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
 </script>
 <!-- ══════════════════════════════════════════════
      CLIENT FLOW MODALS & PANELS
@@ -4797,6 +5125,176 @@ async function toggleFlag(key, enabled) {
       <button onclick="markAllNotifsRead()" style="font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">Mark all read</button>
     </div>
     <div id="notifList"><div style="text-align:center;padding:32px;color:var(--sub)">Loading...</div></div>
+  </div>
+</div>
+
+<!-- Pricing Modal -->
+<div class="modal-overlay" id="pricingModal" onclick="closeModal('pricingModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="max-width:850px;max-height:90vh;overflow-y:auto">
+    <div class="modal-handle"></div>
+    <div class="modal-title">💰 Pricing Configuration</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:20px">Configure base rates and charges for different cities</div>
+    
+    <form id="pricingForm" onsubmit="event.preventDefault();savePricing()">
+      <input type="hidden" id="pricingId">
+      
+      <!-- Basic Info -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div class="field">
+          <label>Configuration Name *</label>
+          <input type="text" id="pricingConfigName" required placeholder="e.g., Mumbai Premium">
+        </div>
+        <div class="field">
+          <label>City (optional for national default)</label>
+          <input type="text" id="pricingCity" placeholder="e.g., Mumbai, Delhi">
+        </div>
+      </div>
+
+      <!-- Checkboxes -->
+      <div style="display:flex;gap:24px;margin-bottom:24px;padding:14px;background:var(--card2);border-radius:10px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
+          <input type="checkbox" id="pricingIsActive" checked style="width:18px;height:18px;cursor:pointer">
+          <span>Active</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
+          <input type="checkbox" id="pricingIsDefault" style="width:18px;height:18px;cursor:pointer">
+          <span>Set as Default</span>
+        </label>
+      </div>
+
+      <!-- Base Pricing -->
+      <div style="margin-bottom:24px">
+        <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <span>🏠</span> Base Pricing by BHK
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+          <div class="field"><label>1 BHK (₹)</label><input type="number" id="pricingBase1" required min="0" step="100" value="5500"></div>
+          <div class="field"><label>2 BHK (₹)</label><input type="number" id="pricingBase2" required min="0" step="100" value="10000"></div>
+          <div class="field"><label>3 BHK (₹)</label><input type="number" id="pricingBase3" required min="0" step="100" value="16000"></div>
+          <div class="field"><label>4 BHK (₹)</label><input type="number" id="pricingBase4" required min="0" step="100" value="21000"></div>
+          <div class="field"><label>5 BHK (₹)</label><input type="number" id="pricingBase5" required min="0" step="100" value="28000"></div>
+        </div>
+      </div>
+
+      <!-- Distance Rates -->
+      <div style="margin-bottom:24px">
+        <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <span>📍</span> Distance-Based Charges
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          <div class="field">
+            <label>Local (₹/km) <span style="color:var(--sub);font-weight:400">0-50km</span></label>
+            <input type="number" id="pricingRateLocal" required min="0" step="0.5" value="12">
+          </div>
+          <div class="field">
+            <label>Regional (₹/km) <span style="color:var(--sub);font-weight:400">50-200km</span></label>
+            <input type="number" id="pricingRateRegional" required min="0" step="0.5" value="20">
+          </div>
+          <div class="field">
+            <label>Intercity (₹/km) <span style="color:var(--sub);font-weight:400">200km+</span></label>
+            <input type="number" id="pricingRateIntercity" required min="0" step="0.5" value="15">
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Charges -->
+      <div style="margin-bottom:24px">
+        <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <span>➕</span> Additional Charges
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div class="field">
+            <label>Floor Charge (₹)</label>
+            <input type="number" id="pricingFloorCharge" required min="0" step="50" value="400">
+          </div>
+          <div class="field">
+            <label>Packing (%)</label>
+            <input type="number" id="pricingPacking" required min="0" max="100" step="1" value="25">
+          </div>
+          <div class="field">
+            <label>Fragile (%)</label>
+            <input type="number" id="pricingFragile" required min="0" max="100" step="1" value="5">
+          </div>
+          <div class="field">
+            <label>GST (%)</label>
+            <input type="number" id="pricingGst" required min="0" max="100" step="0.1" value="18">
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="field">
+        <label>Notes (optional)</label>
+        <textarea id="pricingNotes" rows="2" placeholder="Additional information about this pricing..."></textarea>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:12px;margin-top:20px">
+        <button type="button" class="btn btn-outline" onclick="closeModal('pricingModal')" style="flex:1">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="flex:1">Save Configuration</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal-overlay" id="createUserModal" onclick="closeModal('createUserModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()" style="max-width:500px">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👤 Create New User</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:20px">Add a new agent or sub-admin</div>
+    
+    <form id="createUserForm" onsubmit="event.preventDefault();createNewUser()">
+      <div class="field">
+        <label>Full Name *</label>
+        <input type="text" id="newUserName" required placeholder="e.g., Rajesh Kumar">
+      </div>
+      
+      <div class="field">
+        <label>Email Address *</label>
+        <input type="email" id="newUserEmail" required placeholder="email@example.com">
+      </div>
+      
+      <div class="field">
+        <label>Password *</label>
+        <input type="password" id="newUserPassword" required placeholder="Min 8 characters" minlength="8">
+      </div>
+      
+      <div class="field">
+        <label>Phone Number (optional)</label>
+        <input type="tel" id="newUserPhone" placeholder="+91-9999999999">
+      </div>
+      
+      <div class="field">
+        <label>Role *</label>
+        <select id="newUserRole" required style="width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:14px;background:var(--card2)">
+          <option value="agent">Agent (Field worker)</option>
+          <option value="admin">Sub-Admin (Full access)</option>
+          <option value="customer">Customer</option>
+        </select>
+      </div>
+      
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;color:#1e40af;font-weight:600;margin-bottom:4px">📝 Role Permissions:</div>
+        <div style="font-size:11px;color:#1e40af">
+          • <strong>Agent:</strong> Can manage assigned moves, scan boxes, mark deliveries<br>
+          • <strong>Sub-Admin:</strong> Full admin access (create moves, manage users, view reports)<br>
+          • <strong>Customer:</strong> Regular customer account
+        </div>
+      </div>
+      
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:16px">
+        <div style="font-size:12px;color:#dc2626;font-weight:600;margin-bottom:4px">⚠️ Important:</div>
+        <div style="font-size:11px;color:#dc2626">
+          Roles are <strong>permanent once assigned</strong> and cannot be changed later. Choose carefully!
+        </div>
+      </div>
+      
+      <div style="display:flex;gap:12px">
+        <button type="button" class="btn btn-outline" onclick="closeModal('createUserModal')" style="flex:1">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="flex:1">Create User</button>
+      </div>
+    </form>
   </div>
 </div>
 

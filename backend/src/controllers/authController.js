@@ -39,11 +39,28 @@ exports.login = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-  const { email, password } = req.body;
+  const { emailOrPhone, password } = req.body;
   try {
-    const result = await db.query(
-      'SELECT id, name, email, role, password_hash FROM users WHERE email = $1', [email]
-    );
+    // Support login with email OR phone number
+    // Check if input looks like a phone number (contains + or starts with digits)
+    const isPhone = /^[\d+\-\s()]+$/.test(emailOrPhone);
+    
+    let result;
+    if (isPhone) {
+      // Clean phone number: remove spaces, dashes, parentheses
+      const cleanPhone = emailOrPhone.replace(/[\s\-()]/g, '');
+      result = await db.query(
+        'SELECT id, name, email, role, password_hash FROM users WHERE phone = $1',
+        [cleanPhone]
+      );
+    } else {
+      // Login with email
+      result = await db.query(
+        'SELECT id, name, email, role, password_hash FROM users WHERE email = $1',
+        [emailOrPhone]
+      );
+    }
+    
     const user = result.rows[0];
 
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
