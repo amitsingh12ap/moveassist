@@ -19,5 +19,7 @@ router.post('/payments/:id/verify', ctrl.verifyPayment);
 router.get('/users', ctrl.getUsers);
 router.put('/users/:id/role', ctrl.updateUserRole);
 router.post('/users/agent', ctrl.createAgent);
+router.post('/users/create', ctrl.createAgent); // Generic user creation (agent, admin, customer)
+router.delete('/users/:id', ctrl.deleteUser);
 
 module.exports = router;

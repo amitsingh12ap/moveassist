@@ -117,6 +117,12 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--sla
 .sidebar-brand-text h1 { color: white; font-size: 17px; font-weight: 700; line-height: 1; }
 .sidebar-brand-text p { color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-top: 4px; }
 .sidebar-nav { flex: 1; padding: 8px 16px; display: flex; flex-direction: column; gap: 2px; }
+.nav-section { margin-bottom: 20px; }
+.nav-section-title { 
+  font-size: 11px; font-weight: 700; color: #64748b; 
+  padding: 8px 12px 8px 12px; letter-spacing: 1px;
+  text-transform: uppercase;
+}
 .nav-link {
   display: flex; align-items: center; gap: 12px; padding: 10px 12px;
   border-radius: 8px; color: #94a3b8; font-size: 14px; font-weight: 500;
@@ -323,6 +329,7 @@ tr:hover td { background: var(--slate-50); }
   opacity: 0; pointer-events: none; transition: opacity 0.2s;
 }
 .modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-overlay.active { opacity: 1; pointer-events: all; }
 .modal {
   background: var(--white); border-radius: 16px; padding: 28px;
   width: 460px; max-width: calc(100vw - 32px);
@@ -331,6 +338,7 @@ tr:hover td { background: var(--slate-50); }
   box-shadow: 0 20px 60px rgba(15,23,41,0.2);
 }
 .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+.modal-overlay.active .modal { transform: translateY(0) scale(1); }
 .modal-title { font-size: 20px; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
 .modal-sub { font-size: 13px; color: var(--slate-500); margin-bottom: 24px; }
 .modal-footer { display: flex; gap: 10px; margin-top: 24px; }
@@ -404,8 +412,8 @@ tr:hover td { background: var(--slate-50); }
     </div>
 
     <div class="form-group">
-      <label for="loginEmail">Email Address</label>
-      <input class="form-input" id="loginEmail" type="email" placeholder="e.g., alex@company.com" value="admin@moveassist.com" autocomplete="email"/>
+      <label for="loginEmailOrPhone">Email or Phone Number</label>
+      <input class="form-input" id="loginEmailOrPhone" type="text" placeholder="admin@moveassist.com or +91-9999999999" value="admin@moveassist.com" autocomplete="username"/>
     </div>
     <div class="form-group">
       <div class="label-row">
@@ -463,27 +471,50 @@ tr:hover td { background: var(--slate-50); }
         </div>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-link active" id="nav-dashboard" onclick="showPanel('dashboard')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-          Dashboard
-        </button>
-        <button class="nav-link" id="nav-moves" onclick="showPanel('moves')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m17 8-5-5-5 5"/><path d="M12 3v14"/><path d="M20 17H4"/><path d="m7 22 5-5 5 5"/></svg>
-          Moves
-        </button>
-        <button class="nav-link" id="nav-payments" onclick="showPanel('payments')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="22" height="16" x="1" y="4" rx="2"/><path d="M1 10h22"/></svg>
-          Payments
-          <span class="badge" id="pendingBadge" style="display:none">0</span>
-        </button>
-        <button class="nav-link" id="nav-agents" onclick="showPanel('agents')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Agents
-        </button>
-        <button class="nav-link" id="nav-users" onclick="showPanel('users')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
-          Users
-        </button>
+        <!-- Overview Section -->
+        <div class="nav-section">
+          <div class="nav-section-title">OVERVIEW</div>
+          <button class="nav-link active" id="nav-dashboard" onclick="showPanel('dashboard')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+            Dashboard
+          </button>
+        </div>
+
+        <!-- Operations Section -->
+        <div class="nav-section">
+          <div class="nav-section-title">OPERATIONS</div>
+          <button class="nav-link" id="nav-moves" onclick="showPanel('moves')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m17 8-5-5-5 5"/><path d="M12 3v14"/><path d="M20 17H4"/><path d="m7 22 5-5 5 5"/></svg>
+            Moves
+          </button>
+          <button class="nav-link" id="nav-payments" onclick="showPanel('payments')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="22" height="16" x="1" y="4" rx="2"/><path d="M1 10h22"/></svg>
+            Payments
+            <span class="badge" id="pendingBadge" style="display:none">0</span>
+          </button>
+        </div>
+
+        <!-- Management Section -->
+        <div class="nav-section">
+          <div class="nav-section-title">MANAGEMENT</div>
+          <button class="nav-link" id="nav-agents" onclick="showPanel('agents')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Agents
+          </button>
+          <button class="nav-link" id="nav-users" onclick="showPanel('users')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+            Users
+          </button>
+        </div>
+
+        <!-- Configuration Section -->
+        <div class="nav-section">
+          <div class="nav-section-title">CONFIGURATION</div>
+          <button class="nav-link" id="nav-pricing" onclick="showPanel('pricing')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/><circle cx="8" cy="14" r="1"/><circle cx="12" cy="14" r="1"/></svg>
+            Pricing
+          </button>
+        </div>
       </nav>
       <div class="sidebar-footer">
         <button class="nav-link" onclick="doLogout()">
@@ -552,6 +583,45 @@ tr:hover td { background: var(--slate-50); }
           <div class="section-title">Users</div>
           <p class="section-sub">Manage all registered users and their access roles.</p>
           <div id="usersContent"><div class="loading-center"><div class="spinner"></div></div></div>
+        </div>
+
+        <!-- PRICING -->
+        <div class="panel" id="panel-pricing">
+          <div class="section-title">Pricing Configuration</div>
+          <p class="section-sub">Manage pricing models for different cities and routes</p>
+          
+          <!-- Stats -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0;">
+            <div class="stat-card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 20px; border-radius: 12px; border: 1px solid #93c5fd;">
+              <div style="font-size: 13px; color: #1e40af; font-weight: 600; margin-bottom: 8px;">TOTAL CONFIGS</div>
+              <div style="font-size: 28px; font-weight: 700; color: #1e3a8a;" id="pricingStatTotal">-</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 20px; border-radius: 12px; border: 1px solid #6ee7b7;">
+              <div style="font-size: 13px; color: #047857; font-weight: 600; margin-bottom: 8px;">ACTIVE</div>
+              <div style="font-size: 28px; font-weight: 700; color: #065f46;" id="pricingStatActive">-</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 12px; border: 1px solid #fcd34d;">
+              <div style="font-size: 13px; color: #b45309; font-weight: 600; margin-bottom: 8px;">CITY-SPECIFIC</div>
+              <div style="font-size: 28px; font-weight: 700; color: #92400e;" id="pricingStatCities">-</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #fae8ff 0%, #f3e8ff 100%); padding: 20px; border-radius: 12px; border: 1px solid #d8b4fe;">
+              <div style="font-size: 13px; color: #7e22ce; font-weight: 600; margin-bottom: 8px;">DEFAULT</div>
+              <div style="font-size: 15px; font-weight: 700; color: #6b21a8; margin-top: 4px;" id="pricingStatDefault">-</div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="margin: 20px 0; display: flex; justify-content: flex-end;">
+            <button class="btn btn-primary" onclick="openPricingModal()" style="display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Pricing Config
+            </button>
+          </div>
+
+          <!-- Pricing Grid -->
+          <div id="pricingContent">
+            <div class="loading-center"><div class="spinner"></div></div>
+          </div>
         </div>
       </div>
     </main>
@@ -657,6 +727,124 @@ tr:hover td { background: var(--slate-50); }
   </div>
 </div>
 
+<!-- MODAL: Pricing Configuration -->
+<div class="modal-overlay" id="pricingModal" onclick="closePricingModal()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-title" id="pricingModalTitle">Create Pricing Configuration</div>
+    <div class="modal-sub">Configure pricing for specific cities or national default</div>
+    
+    <form id="pricingForm" onsubmit="return false;">
+      <input type="hidden" id="pricingId">
+      
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px;">
+        <!-- Basic Info -->
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Configuration Name *</label>
+          <input type="text" class="form-input" id="pricingConfigName" required placeholder="e.g., Mumbai Premium Pricing">
+        </div>
+
+        <div class="field">
+          <label>City (Optional)</label>
+          <input type="text" class="form-input" id="pricingCity" placeholder="e.g., Mumbai, Delhi">
+          <small style="color: #64748b; font-size: 12px;">Leave empty for national default</small>
+        </div>
+
+        <div class="field">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="pricingIsActive" checked style="width: 18px; height: 18px;">
+            Active
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+            <input type="checkbox" id="pricingIsDefault" style="width: 18px; height: 18px;">
+            Set as Default
+          </label>
+        </div>
+
+        <!-- Base Pricing -->
+        <div class="field" style="grid-column: 1 / -1; margin-top: 16px;">
+          <h4 style="margin-bottom: 12px; color: #0f172a;">Base Pricing by BHK</h4>
+        </div>
+
+        <div class="field">
+          <label>1 BHK Base (₹) *</label>
+          <input type="number" class="form-input" id="pricingBase1" required min="0" step="100" value="5500">
+        </div>
+        <div class="field">
+          <label>2 BHK Base (₹) *</label>
+          <input type="number" class="form-input" id="pricingBase2" required min="0" step="100" value="10000">
+        </div>
+        <div class="field">
+          <label>3 BHK Base (₹) *</label>
+          <input type="number" class="form-input" id="pricingBase3" required min="0" step="100" value="16000">
+        </div>
+        <div class="field">
+          <label>4 BHK Base (₹) *</label>
+          <input type="number" class="form-input" id="pricingBase4" required min="0" step="100" value="21000">
+        </div>
+        <div class="field">
+          <label>5 BHK Base (₹) *</label>
+          <input type="number" class="form-input" id="pricingBase5" required min="0" step="100" value="28000">
+        </div>
+
+        <!-- Distance Rates -->
+        <div class="field" style="grid-column: 1 / -1; margin-top: 16px;">
+          <h4 style="margin-bottom: 12px; color: #0f172a;">Distance Charges</h4>
+        </div>
+
+        <div class="field">
+          <label>Local Rate (₹/km) *</label>
+          <input type="number" class="form-input" id="pricingRateLocal" required min="0" step="0.5" value="12">
+          <small style="color: #64748b; font-size: 12px;">0-50 km</small>
+        </div>
+        <div class="field">
+          <label>Regional Rate (₹/km) *</label>
+          <input type="number" class="form-input" id="pricingRateRegional" required min="0" step="0.5" value="20">
+          <small style="color: #64748b; font-size: 12px;">50-200 km</small>
+        </div>
+        <div class="field">
+          <label>Intercity Rate (₹/km) *</label>
+          <input type="number" class="form-input" id="pricingRateIntercity" required min="0" step="0.5" value="15">
+          <small style="color: #64748b; font-size: 12px;">200+ km</small>
+        </div>
+
+        <!-- Additional Charges -->
+        <div class="field" style="grid-column: 1 / -1; margin-top: 16px;">
+          <h4 style="margin-bottom: 12px; color: #0f172a;">Additional Charges</h4>
+        </div>
+
+        <div class="field">
+          <label>Floor Charge (₹/floor) *</label>
+          <input type="number" class="form-input" id="pricingFloorCharge" required min="0" step="50" value="400">
+        </div>
+        <div class="field">
+          <label>Packing Materials (%) *</label>
+          <input type="number" class="form-input" id="pricingPacking" required min="0" max="100" step="1" value="25">
+        </div>
+        <div class="field">
+          <label>Fragile Items (%) *</label>
+          <input type="number" class="form-input" id="pricingFragile" required min="0" max="100" step="1" value="5">
+        </div>
+        <div class="field">
+          <label>GST (%) *</label>
+          <input type="number" class="form-input" id="pricingGst" required min="0" max="100" step="0.1" value="18">
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Notes (Optional)</label>
+          <textarea class="form-input" id="pricingNotes" rows="3" placeholder="Additional information about this pricing model..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closePricingModal()" style="flex:1">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="savePricing()" id="savePricingBtn" style="flex:2">
+          Save Configuration
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -732,8 +920,8 @@ function showAdminView() {
 }
 
 // ── NAV ───────────────────────────────────────────────────────
-const panelLabels = { dashboard: 'Overview', moves: 'Moves', payments: 'Payments', agents: 'Agents', users: 'Users' };
-const panelLoaders = { dashboard: loadDashboard, moves: loadMoves, payments: loadPayments, agents: loadAgents, users: loadUsers };
+const panelLabels = { dashboard: 'Overview', moves: 'Moves', payments: 'Payments', agents: 'Agents', users: 'Users', pricing: 'Pricing' };
+const panelLoaders = { dashboard: loadDashboard, moves: loadMoves, payments: loadPayments, agents: loadAgents, users: loadUsers, pricing: loadPricing };
 
 function showPanel(name) {
   document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
@@ -1382,6 +1570,242 @@ function paymentBadge(s) {
 
 function roleBadge(r) {
   return { admin: { cls: 'badge-blue' }, agent: { cls: 'badge-green' }, customer: { cls: 'badge-slate' } }[r] || { cls: 'badge-slate' };
+}
+
+// ── PRICING ───────────────────────────────────────────────────
+let pricingConfigs = [];
+let currentPricingId = null;
+
+async function loadPricing() {
+  const c = document.getElementById('pricingContent');
+  c.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  
+  try {
+    const data = await api('GET', '/api/admin/pricing');
+    if (!data) return;
+    
+    pricingConfigs = data;
+    updatePricingStats();
+    renderPricingGrid();
+  } catch (error) {
+    console.error('Error loading pricing:', error);
+    toast('Failed to load pricing configurations', 'error');
+  }
+}
+
+function updatePricingStats() {
+  document.getElementById('pricingStatTotal').textContent = pricingConfigs.length;
+  document.getElementById('pricingStatActive').textContent = pricingConfigs.filter(c => c.is_active).length;
+  document.getElementById('pricingStatCities').textContent = pricingConfigs.filter(c => c.city).length;
+  const defaultConfig = pricingConfigs.find(c => c.is_default);
+  document.getElementById('pricingStatDefault').textContent = defaultConfig ? defaultConfig.config_name : 'None';
+}
+
+function renderPricingGrid() {
+  const c = document.getElementById('pricingContent');
+  
+  if (pricingConfigs.length === 0) {
+    c.innerHTML = '<div style="text-align: center; padding: 60px 20px; color: #64748b;"><p>No pricing configurations yet. Create your first one!</p></div>';
+    return;
+  }
+  
+  c.innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px;">
+      ${pricingConfigs.map(config => `
+        <div style="background: ${config.is_default ? 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)' : 'white'}; 
+                    border: 2px solid ${config.is_default ? '#10b981' : '#e2e8f0'}; 
+                    border-radius: 10px; padding: 20px; ${!config.is_active ? 'opacity: 0.6;' : ''}">
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+            <div>
+              <div style="font-size: 16px; font-weight: 600; color: #0f172a;">${escapeHtml(config.config_name)}</div>
+              <div style="font-size: 13px; color: #64748b; margin-top: 4px;">${config.city || 'National Default'}</div>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              ${config.is_default ? '<span class="badge badge-green">Default</span>' : ''}
+              ${config.is_active ? '<span class="badge badge-blue">Active</span>' : '<span class="badge badge-slate">Inactive</span>'}
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px;">
+            <div style="background: #f8fafc; padding: 10px 12px; border-radius: 6px;">
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">1 BHK</div>
+              <div style="font-size: 15px; font-weight: 600; color: #0f172a;">₹${formatNumber(config.base_1bhk)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 10px 12px; border-radius: 6px;">
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">2 BHK</div>
+              <div style="font-size: 15px; font-weight: 600; color: #0f172a;">₹${formatNumber(config.base_2bhk)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 10px 12px; border-radius: 6px;">
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">3 BHK</div>
+              <div style="font-size: 15px; font-weight: 600; color: #0f172a;">₹${formatNumber(config.base_3bhk)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 10px 12px; border-radius: 6px;">
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Local Rate</div>
+              <div style="font-size: 15px; font-weight: 600; color: #2563eb;">₹${config.rate_per_km_local}/km</div>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9;">
+            <button class="btn btn-sm btn-outline" onclick='editPricing("${config.id}")' style="flex: 1;">✏️ Edit</button>
+            <button class="btn btn-sm ${config.is_active ? 'btn-outline' : 'btn-primary'}" 
+                    onclick='togglePricingActive("${config.id}", ${!config.is_active})' style="flex: 1;">
+              ${config.is_active ? '⏸️ Deactivate' : '▶️ Activate'}
+            </button>
+            ${!config.is_default ? `
+              <button class="btn btn-sm" style="background: #ef4444; color: white; flex: 1;" 
+                      onclick='deletePricing("${config.id}")'>🗑️ Delete</button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function openPricingModal() {
+  currentPricingId = null;
+  document.getElementById('pricingModalTitle').textContent = 'Create Pricing Configuration';
+  document.getElementById('pricingForm').reset();
+  
+  // Set defaults
+  document.getElementById('pricingIsActive').checked = true;
+  document.getElementById('pricingIsDefault').checked = false;
+  document.getElementById('pricingBase1').value = 5500;
+  document.getElementById('pricingBase2').value = 10000;
+  document.getElementById('pricingBase3').value = 16000;
+  document.getElementById('pricingBase4').value = 21000;
+  document.getElementById('pricingBase5').value = 28000;
+  document.getElementById('pricingRateLocal').value = 12;
+  document.getElementById('pricingRateRegional').value = 20;
+  document.getElementById('pricingRateIntercity').value = 15;
+  document.getElementById('pricingFloorCharge').value = 400;
+  document.getElementById('pricingPacking').value = 25;
+  document.getElementById('pricingFragile').value = 5;
+  document.getElementById('pricingGst').value = 18;
+  
+  document.getElementById('pricingModal').classList.add('active');
+}
+
+function editPricing(id) {
+  const config = pricingConfigs.find(c => c.id === id);
+  if (!config) return;
+  
+  currentPricingId = id;
+  document.getElementById('pricingModalTitle').textContent = 'Edit Pricing Configuration';
+  document.getElementById('pricingId').value = id;
+  document.getElementById('pricingConfigName').value = config.config_name;
+  document.getElementById('pricingCity').value = config.city || '';
+  document.getElementById('pricingIsActive').checked = config.is_active;
+  document.getElementById('pricingIsDefault').checked = config.is_default;
+  document.getElementById('pricingBase1').value = config.base_1bhk;
+  document.getElementById('pricingBase2').value = config.base_2bhk;
+  document.getElementById('pricingBase3').value = config.base_3bhk;
+  document.getElementById('pricingBase4').value = config.base_4bhk;
+  document.getElementById('pricingBase5').value = config.base_5bhk;
+  document.getElementById('pricingRateLocal').value = config.rate_per_km_local;
+  document.getElementById('pricingRateRegional').value = config.rate_per_km_regional;
+  document.getElementById('pricingRateIntercity').value = config.rate_per_km_intercity;
+  document.getElementById('pricingFloorCharge').value = config.floor_charge_no_lift;
+  document.getElementById('pricingPacking').value = config.packing_material_percent;
+  document.getElementById('pricingFragile').value = config.fragile_items_percent;
+  document.getElementById('pricingGst').value = config.gst_percent;
+  document.getElementById('pricingNotes').value = config.notes || '';
+  
+  document.getElementById('pricingModal').classList.add('active');
+}
+
+function closePricingModal() {
+  document.getElementById('pricingModal').classList.remove('active');
+  currentPricingId = null;
+}
+
+async function savePricing() {
+  const form = document.getElementById('pricingForm');
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+  
+  const data = {
+    config_name: document.getElementById('pricingConfigName').value,
+    city: document.getElementById('pricingCity').value || null,
+    is_active: document.getElementById('pricingIsActive').checked,
+    is_default: document.getElementById('pricingIsDefault').checked,
+    base_1bhk: parseFloat(document.getElementById('pricingBase1').value),
+    base_2bhk: parseFloat(document.getElementById('pricingBase2').value),
+    base_3bhk: parseFloat(document.getElementById('pricingBase3').value),
+    base_4bhk: parseFloat(document.getElementById('pricingBase4').value),
+    base_5bhk: parseFloat(document.getElementById('pricingBase5').value),
+    rate_per_km_local: parseFloat(document.getElementById('pricingRateLocal').value),
+    rate_per_km_regional: parseFloat(document.getElementById('pricingRateRegional').value),
+    rate_per_km_intercity: parseFloat(document.getElementById('pricingRateIntercity').value),
+    floor_charge_no_lift: parseFloat(document.getElementById('pricingFloorCharge').value),
+    packing_material_percent: parseFloat(document.getElementById('pricingPacking').value),
+    fragile_items_percent: parseFloat(document.getElementById('pricingFragile').value),
+    gst_percent: parseFloat(document.getElementById('pricingGst').value),
+    notes: document.getElementById('pricingNotes').value || null
+  };
+  
+  try {
+    const btn = document.getElementById('savePricingBtn');
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+    
+    if (currentPricingId) {
+      await api('PUT', `/api/admin/pricing/${currentPricingId}`, data);
+      toast('Pricing configuration updated successfully!', 'success');
+    } else {
+      await api('POST', '/api/admin/pricing', data);
+      toast('Pricing configuration created successfully!', 'success');
+    }
+    
+    closePricingModal();
+    await loadPricing();
+    
+    btn.textContent = 'Save Configuration';
+    btn.disabled = false;
+  } catch (error) {
+    console.error('Error saving pricing:', error);
+    toast('Failed to save: ' + error.message, 'error');
+    document.getElementById('savePricingBtn').textContent = 'Save Configuration';
+    document.getElementById('savePricingBtn').disabled = false;
+  }
+}
+
+async function togglePricingActive(id, newState) {
+  try {
+    await api('PUT', `/api/admin/pricing/${id}`, { is_active: newState });
+    toast(`Configuration ${newState ? 'activated' : 'deactivated'}!`, 'success');
+    await loadPricing();
+  } catch (error) {
+    console.error('Error toggling active:', error);
+    toast('Failed to update', 'error');
+  }
+}
+
+async function deletePricing(id) {
+  if (!confirm('Are you sure you want to delete this pricing configuration? This cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    await api('DELETE', `/api/admin/pricing/${id}`);
+    toast('Pricing configuration deleted!', 'success');
+    await loadPricing();
+  } catch (error) {
+    console.error('Error deleting pricing:', error);
+    toast('Failed to delete: ' + error.message, 'error');
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function formatNumber(num) {
+  return new Intl.NumberFormat('en-IN').format(num);
 }
 </script>
 </body>

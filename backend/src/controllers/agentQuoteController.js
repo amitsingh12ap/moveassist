@@ -94,12 +94,14 @@ exports.submitQuote = async (req, res) => {
     const alreadyPaid = parseFloat(move.amount_paid || 0);
     const balanceDue  = Math.max(0, total - alreadyPaid);
 
-    // Notify customer
+    // Notify customer with payment request
     await db.query(
       `INSERT INTO notifications (user_id, move_id, type, title, body)
-       VALUES ($1,$2,'quote_submitted','📋 Final Amount Confirmed',$3)`,
+       VALUES ($1,$2,'quote_submitted','💰 Quote Ready - Payment Required',$3)`,
       [move.user_id, moveId,
-       `Your agent has confirmed the total: ₹${total.toLocaleString('en-IN')}. Balance due: ₹${balanceDue.toLocaleString('en-IN')}.`]
+       `Your agent has assessed your move and confirmed the total: ₹${total.toLocaleString('en-IN')}.\n\n` +
+       `💳 Please proceed with payment to confirm your booking.\n` +
+       `Amount to pay: ₹${balanceDue.toLocaleString('en-IN')}`]
     );
 
     await activities.create(moveId, req.user.id, 'agent', 'quote_submitted',
