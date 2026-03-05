@@ -1626,7 +1626,7 @@ body {
 // ─── STATE ───────────────────────────────────────────────────
 const BASE = window.location.origin;
 let token = localStorage.getItem('ma_token') || '';
-let user = JSON.parse(localStorage.getItem('ma_user') || 'null');
+let user = (() => { try { const v = localStorage.getItem('ma_user'); return (v && v !== 'undefined') ? JSON.parse(v) : null; } catch { return null; } })();
 let currentMove = null;
 let currentBox = null;
 let currentScreen = 'auth';
@@ -3395,6 +3395,7 @@ async function submitScan() {
 // ─── PAYMENT ─────────────────────────────────────────────────
 
 const STATUS_LABELS = {
+  'created':                      { label: 'Created',               color: 'var(--sub)',     icon: '📋' },
   'payment_pending':              { label: 'Payment Pending',       color: 'var(--warn)',    icon: '💳' },
   'payment_under_verification':   { label: 'Under Verification',    color: '#a78bfa',        icon: '🔍' },
   'active':                       { label: 'Active',                color: 'var(--success)', icon: '✅' },
