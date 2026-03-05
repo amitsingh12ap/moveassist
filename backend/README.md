@@ -39,7 +39,7 @@ Open **http://localhost:3000** — that's it.
 | 2 | Creates `.env` with a random JWT secret (skipped if already exists) |
 | 3 | Runs `npm install` / `npm ci` |
 | 4 | Creates the `moveassist` Postgres database if missing |
-| 5 | Runs all 10 migrations in dependency order (all idempotent) |
+| 5 | Runs all 12 migrations in dependency order (all idempotent) |
 | 6 | Seeds admin, agent, and customer demo accounts |
 | 7 | Validates DB tables and prints row counts |
 
@@ -91,6 +91,8 @@ psql moveassist -f setup_feature_flags.sql
 psql moveassist -f migrations/addon_services_schema.sql
 psql moveassist -f setup_addon_services.sql
 psql moveassist -f migrations/004_add_delivered_boxes.sql
+psql moveassist -f migrations/005_notifications.sql
+psql moveassist -f migrations/006_missing_tables.sql
 
 # 5. Start
 npm run dev
@@ -135,7 +137,9 @@ backend/
 │       └── move_plan_migration.sql
 ├── migrations/            # incremental migrations
 │   ├── addon_services_schema.sql
-│   └── 004_add_delivered_boxes.sql
+│   ├── 004_add_delivered_boxes.sql
+│   ├── 005_notifications.sql
+│   └── 006_missing_tables.sql
 ├── public/                # frontend SPA (HTML/CSS/JS)
 ├── setup.sh               # ← run this on a new machine
 ├── .env.example           # template — copy to .env
