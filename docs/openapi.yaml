@@ -1,0 +1,399 @@
+openapi: 3.0.0
+info:
+  title: MoveAssist API
+  description: Complete API collection for MoveAssist MVP
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: 🔐 Auth
+  - name: 📦 Moves
+  - name: 📫 Boxes (QR Tracking)
+  - name: 🛋️ Furniture
+  - name: 📄 Reports
+  - name: ❤️ Health Check
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - 🔐 Auth
+      summary: Register
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Amit Sharma\",\n  \"email\":
+                \"amit@moveassist.com\",\n  \"password\": \"password123\",\n 
+                \"phone\": \"+91-9999999999\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/auth/login:
+    post:
+      tags:
+        - 🔐 Auth
+      summary: Login
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"email\": \"amit@moveassist.com\",\n  \"password\":
+                \"password123\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/moves:
+    post:
+      tags:
+        - 📦 Moves
+      summary: Create Move
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"title\": \"My Mumbai to Bangalore Move\",\n 
+                \"from_address\": \"201, Andheri West, Mumbai 400053\",\n 
+                \"to_address\": \"304, Koramangala, Bangalore 560034\",\n 
+                \"move_date\": \"2026-03-15\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - 📦 Moves
+      summary: Get All Moves
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/moves/{moveId}:
+    get:
+      tags:
+        - 📦 Moves
+      summary: Get Move by ID
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: moveId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - 📦 Moves
+      summary: Update Move Status
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"title\": \"My Mumbai to Bangalore Move\",\n 
+                \"from_address\": \"201, Andheri West, Mumbai 400053\",\n 
+                \"to_address\": \"304, Koramangala, Bangalore 560034\",\n 
+                \"move_date\": \"2026-03-15\",\n  \"status\":
+                \"in_progress\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: moveId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/boxes/move/{moveId}:
+    post:
+      tags:
+        - 📫 Boxes (QR Tracking)
+      summary: Create Box 2 (Electronics)
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"label\": \"Electronics\",\n  \"category\":
+                \"fragile\",\n  \"contents\": \"Laptop, chargers, hard
+                drives\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: moveId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - 📫 Boxes (QR Tracking)
+      summary: Get All Boxes for Move
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: moveId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/boxes/scan/{qrCode}:
+    post:
+      tags:
+        - 📫 Boxes (QR Tracking)
+      summary: Scan Box — Mark DELIVERED
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"status\": \"delivered\",\n  \"location\": \"New home -
+                Koramangala\",\n  \"notes\": \"Delivered in good condition\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: qrCode
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/boxes/qr/{qrCode}:
+    get:
+      tags:
+        - 📫 Boxes (QR Tracking)
+      summary: Lookup Box by QR
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: qrCode
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/furniture/move/{moveId}:
+    post:
+      tags:
+        - 🛋️ Furniture
+      summary: Add Furniture Item
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"3-Seater Sofa\",\n  \"category\": \"sofa\",\n 
+                \"condition_before\": \"good\",\n  \"damage_notes\": \"Small
+                scratch on left armrest, pre-existing\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: moveId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - 🛋️ Furniture
+      summary: Get All Furniture for Move
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: moveId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/furniture/{furnitureId}/condition-after:
+    put:
+      tags:
+        - 🛋️ Furniture
+      summary: Update Condition After Move
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"condition_after\": \"fair\",\n  \"damage_notes\": \"New
+                scratch on right armrest from loading\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: furnitureId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/reports/generate/{moveId}:
+    post:
+      tags:
+        - 📄 Reports
+      summary: Generate PDF Report
+      requestBody:
+        content: {}
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{token}}
+        - name: moveId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /health:
+    get:
+      tags:
+        - ❤️ Health Check
+      summary: Health
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}

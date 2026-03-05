@@ -3,6 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('js-yaml');
+const fs = require('fs');
 
 const authRoutes = require('./routes/auth');
 const moveRoutes = require('./routes/moves');
@@ -69,6 +72,10 @@ app.get('/admin/pricing', (req, res) => {
 app.get('/api-tester.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../../docs/api-tester.html'));
 });
+
+// Swagger UI — API Docs
+const swaggerDoc = YAML.load(fs.readFileSync(path.join(__dirname, '../../docs/openapi.yaml'), 'utf8'));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
 // Health check
 app.get('/health', (req, res) => {

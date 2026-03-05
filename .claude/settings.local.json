@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(sc query state= all)",
-      "Bash(where psql)"
+      "Bash(where psql)",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); console.log\\(process.env.DATABASE_URL\\)\")",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -c \"CREATE DATABASE moveassist;\")",
+      "Bash(PGPASSWORD=password \"/c/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -c \"CREATE DATABASE moveassist;\")",
+      "Bash(npm run db:migrate)",
+      "Bash(PGPASSWORD=password \"/c/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d moveassist -f \"d:/corevibe/moveassist/backend/src/utils/schema.sql\")",
+      "Bash(PGPASSWORD=password \"/c/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d moveassist -c \"\\\\d users\")",
+      "Bash(npm install swagger-ui-express postman-to-openapi --save-dev)"
     ]
   }
 }

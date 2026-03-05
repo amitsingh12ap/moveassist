@@ -10,6 +10,7 @@ CREATE TABLE users (
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   phone VARCHAR(20),
+  role VARCHAR(50) DEFAULT 'user', -- user | agent | admin
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
