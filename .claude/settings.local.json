@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sc query state= all)",
+      "Bash(where psql)"
+    ]
+  }
+}
