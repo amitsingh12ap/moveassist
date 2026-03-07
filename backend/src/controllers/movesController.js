@@ -7,13 +7,28 @@ const pricingCalculator = require('./pricingCalculator');
 // Customer: get own moves
 exports.getAll = async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT m.*,
-        COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id), 0) as total_boxes,
-        COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id AND status='delivered'), 0) as delivered_boxes
-       FROM moves m WHERE user_id=$1 ORDER BY created_at DESC`,
-      [req.user.id]
-    );
+    let result;
+    if (req.user.role === 'agent') {
+      // Agents see moves they are assigned to (agent_id) OR created on behalf of customers
+      result = await db.query(
+        `SELECT m.*,
+          u.name as user_name, u.phone as customer_phone,
+          COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id), 0) as total_boxes,
+          COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id AND status='delivered'), 0) as delivered_boxes
+         FROM moves m
+         JOIN users u ON u.id = m.user_id
+         WHERE m.agent_id=$1 ORDER BY m.created_at DESC`,
+        [req.user.id]
+      );
+    } else {
+      result = await db.query(
+        `SELECT m.*,
+          COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id), 0) as total_boxes,
+          COALESCE((SELECT COUNT(*) FROM boxes WHERE move_id=m.id AND status='delivered'), 0) as delivered_boxes
+         FROM moves m WHERE user_id=$1 ORDER BY created_at DESC`,
+        [req.user.id]
+      );
+    }
     res.json(result.rows);
   } catch(err) {
     res.status(500).json({ error: 'Failed to fetch moves' });
@@ -68,8 +83,39 @@ exports.getAllAdmin = async (req, res) => {
 exports.create = async (req, res) => {
   const { title, from_address, to_address, move_date,
           from_city, to_city, from_lat, from_lng, to_lat, to_lng,
-          floor_from, floor_to, has_lift_from, has_lift_to, bhk_type } = req.body;
+          floor_from, floor_to, has_lift_from, has_lift_to, bhk_type,
+          customer_phone, customer_name } = req.body;
   try {
+    // ── Agent creating on behalf of customer ──────────────────────────────
+    let moveOwner = req.user; // default: creator is the customer
+    let assignedAgentId = null;
+
+    if (req.user.role === 'agent' || req.user.role === 'admin') {
+      if (!customer_phone) {
+        return res.status(400).json({ error: 'customer_phone is required when an agent creates a move' });
+      }
+      // Normalize phone
+      const phone = customer_phone.trim().replace(/\s+/g, '');
+      // Look up existing customer
+      let custResult = await db.query(
+        `SELECT id, name, phone FROM users WHERE phone = $1 AND role = 'customer'`, [phone]
+      );
+      if (custResult.rows.length === 0) {
+        // Auto-create a guest customer account
+        const guestName = customer_name?.trim() || `Customer (${phone})`;
+        const bcrypt = require('bcryptjs');
+        const tempHash = await bcrypt.hash(phone, 10); // temp password = their phone
+        custResult = await db.query(
+          `INSERT INTO users (name, phone, email, password_hash, role)
+           VALUES ($1, $2, $3, $4, 'customer') RETURNING id, name, phone`,
+          [guestName, phone, `${phone}@guest.moveassist.com`, tempHash]
+        );
+        console.log(`  Auto-created guest customer: ${guestName} (${phone})`);
+      }
+      moveOwner = custResult.rows[0];
+      assignedAgentId = req.user.role === 'agent' ? req.user.id : null;
+    }
+
     // Intra-city validation - check feature flag with fallback
     let intraCityOnly = false;
     try {
@@ -102,18 +148,20 @@ exports.create = async (req, res) => {
     
     // Create move with status 'active' (new flow: agent visits first, no upfront payment)
     const result = await db.query(
-      `INSERT INTO moves (user_id,title,from_address,to_address,move_date,status,payment_status,
+      `INSERT INTO moves (user_id,agent_id,title,from_address,to_address,move_date,status,payment_status,
         from_city,to_city,from_lat,from_lng,to_lat,to_lng,floor_from,floor_to,has_lift_from,has_lift_to,bhk_type)
-       VALUES ($1,$2,$3,$4,$5,'active','pending',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
-      [req.user.id,title,from_address,to_address,move_date,
+       VALUES ($1,$2,$3,$4,$5,$6,'active','pending',$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      [moveOwner.id, assignedAgentId, title,from_address,to_address,move_date,
        from_city||null,to_city||null,from_lat||null,from_lng||null,to_lat||null,to_lng||null,
        floor_from||0,floor_to||0,has_lift_from||false,has_lift_to||false,bhk_type||null]
     );
     const move = result.rows[0];
     
     // Log move creation activity
-    await activities.create(move.id, req.user.id, 'customer', 'move_created',
-      'Move request created', `From ${from_address} to ${to_address}`, {}
+    const actorRole = req.user.role === 'agent' ? 'agent' : 'customer';
+    await activities.create(move.id, req.user.id, actorRole, 'move_created',
+      req.user.role === 'agent' ? `Move created by agent on behalf of customer` : 'Move request created',
+      `From ${from_address} to ${to_address}`, {}
     );
     
     // CALCULATE PRICING ESTIMATE

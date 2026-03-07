@@ -42,17 +42,26 @@ exports.submitQuote = async (req, res) => {
 
     const total = parseFloat(total_amount);
 
-    // If breakdown provided, calculate; otherwise treat total_amount as the final number
-    let subtotal, tax;
+    // GST is ONLY applied if agent explicitly passes include_tax=true.
+    // Default: total_amount is what the agent collects — no auto-GST on top.
+    let subtotal, tax, finalTotal;
     if (base_price && parseFloat(base_price) > 0) {
       subtotal = parseFloat(base_price) + parseFloat(floor_charge)
                + parseFloat(fragile_charge) + parseFloat(extra_items)
                - parseFloat(discount);
-      tax = Math.round(subtotal * 0.18);
+      if (include_tax) {
+        tax = Math.round(subtotal * 0.18);
+        finalTotal = subtotal + tax;
+      } else {
+        // No GST — agent's subtotal is the total to collect
+        tax = 0;
+        finalTotal = subtotal;
+      }
     } else {
-      // Reverse-calc from total (total is tax-inclusive)
-      subtotal = include_tax ? Math.round(total / 1.18) : total;
-      tax      = total - subtotal;
+      // No breakdown — total_amount is the direct amount to collect (no tax)
+      subtotal = total;
+      tax      = 0;
+      finalTotal = total;
     }
 
     // Upsert — one active quote per move
@@ -67,7 +76,7 @@ exports.submitQuote = async (req, res) => {
            notes=$10, items_snapshot=$11, submitted_at=NOW()
          WHERE id=$12`,
         [req.user.id, base_price || subtotal, floor_charge, fragile_charge,
-         extra_items, discount, subtotal, tax, total,
+         extra_items, discount, subtotal, tax, finalTotal,
          notes || null, items_snapshot ? JSON.stringify(items_snapshot) : null, quoteId]
       );
     } else {
@@ -78,38 +87,46 @@ exports.submitQuote = async (req, res) => {
             extra_items, discount, subtotal, tax, total, notes, items_snapshot)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [quoteId, moveId, req.user.id, base_price || subtotal, floor_charge,
-         fragile_charge, extra_items, discount, subtotal, tax, total,
+         fragile_charge, extra_items, discount, subtotal, tax, finalTotal,
          notes || null, items_snapshot ? JSON.stringify(items_snapshot) : null]
       );
     }
 
-    // Update move: set final_amount, quote_status, also update amount_total to match
+    // Update move: set final_amount, quote_status, also update amount_total to include addons
+    const addonsResult = await db.query(
+      'SELECT COALESCE(SUM(total_price), 0) as addon_total FROM move_addons WHERE move_id = $1',
+      [moveId]
+    );
+    const addonTotal = parseFloat(addonsResult.rows[0].addon_total);
+    const grandTotal = finalTotal + addonTotal;
+
     await db.query(
       `UPDATE moves SET
-         final_amount=$1, amount_total=$1, quote_status='submitted', updated_at=NOW()
-       WHERE id=$2`,
-      [total, moveId]
+         final_amount=$1, amount_total=$2, quote_status='submitted', updated_at=NOW()
+       WHERE id=$3`,
+      [finalTotal, grandTotal, moveId]
     );
 
     const alreadyPaid = parseFloat(move.amount_paid || 0);
-    const balanceDue  = Math.max(0, total - alreadyPaid);
+    const balanceDue  = Math.max(0, grandTotal - alreadyPaid);
 
     // Notify customer with payment request
+    const addonLine = addonTotal > 0 ? `\n➕ Add-on services: ₹${addonTotal.toLocaleString('en-IN')}\n🧾 Grand total (incl. add-ons): ₹${grandTotal.toLocaleString('en-IN')}` : '';
     await db.query(
       `INSERT INTO notifications (user_id, move_id, type, title, body)
        VALUES ($1,$2,'quote_submitted','💰 Quote Ready - Payment Required',$3)`,
       [move.user_id, moveId,
-       `Your agent has assessed your move and confirmed the total: ₹${total.toLocaleString('en-IN')}.\n\n` +
+       `Your agent has assessed your move and confirmed the total: ₹${finalTotal.toLocaleString('en-IN')}.${addonLine}\n\n` +
        `💳 Please proceed with payment to confirm your booking.\n` +
        `Amount to pay: ₹${balanceDue.toLocaleString('en-IN')}`]
     );
 
     await activities.create(moveId, req.user.id, 'agent', 'quote_submitted',
-      `Quote submitted: ₹${total.toLocaleString('en-IN')}`,
-      notes || '', { quote_id: quoteId, total, balance_due: balanceDue }
+      `Quote submitted: ₹${finalTotal.toLocaleString('en-IN')}${addonTotal > 0 ? ` + ₹${addonTotal.toLocaleString('en-IN')} add-ons = ₹${grandTotal.toLocaleString('en-IN')} total` : ''}`,
+      notes || '', { quote_id: quoteId, total: finalTotal, addon_total: addonTotal, grand_total: grandTotal, balance_due: balanceDue }
     );
 
-    res.json({ success: true, quote_id: quoteId, total, subtotal, tax, balance_due: balanceDue });
+    res.json({ success: true, quote_id: quoteId, total: finalTotal, subtotal, tax, addon_total: addonTotal, grand_total: grandTotal, balance_due: balanceDue });
   } catch (err) {
     console.error('submitQuote:', err);
     res.status(500).json({ error: 'Failed to submit quote' });

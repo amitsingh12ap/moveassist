@@ -1410,7 +1410,7 @@ async function loadUsers() {
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>User</th><th>Phone</th><th>Role</th><th>Moves</th><th>Joined</th><th>Change Role</th><th>Actions</th></tr></thead>
+          <thead><tr><th>User</th><th>Phone</th><th>Role</th><th>Moves</th><th>Joined</th><th>Change Role</th></tr></thead>
           <tbody>
             ${users.map(u => {
               const ri = roleBadge(u.role);
@@ -1436,9 +1436,6 @@ async function loadUsers() {
                     <option value="admin"${u.role==='admin'?' selected':''}>Admin</option>
                   </select>
                 </td>
-                <td>
-                  ${u.role !== 'admin' ? `<button onclick="deleteUser('${u.id}', '${u.name}')" style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">🗑️ Delete</button>` : '<span style="color:var(--slate-300);font-size:12px">—</span>'}
-                </td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -1457,18 +1454,6 @@ async function changeRole(userId, role) {
     statsCache = null;
     setTimeout(loadUsers, 200);
   } catch(e) { toast(e.message, 'error'); loadUsers(); }
-}
-
-async function deleteUser(userId, userName) {
-  if (!confirm(`Delete user "${userName}"? This will permanently remove the user and all their data. This cannot be undone.`)) return;
-  try {
-    await api('DELETE', `/api/admin/users/${userId}`);
-    toast(`User "${userName}" deleted successfully`, 'success');
-    statsCache = null;
-    loadUsers();
-  } catch(e) {
-    toast(e.message || 'Failed to delete user', 'error');
-  }
 }
 
 // ── SET PRICING MODAL ─────────────────────────────────────────
