@@ -307,82 +307,76 @@ exports.createAgent = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   const { id } = req.params;
-  
+
   const client = await db.getClient();
   try {
     await client.query('BEGIN');
-    
-    // Check if user exists
+
     const userCheck = await client.query('SELECT role, email, name FROM users WHERE id = $1', [id]);
     if (userCheck.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     const user = userCheck.rows[0];
-    console.log(`Attempting to delete user: ${user.name} (${user.email}) - Role: ${user.role}`);
-    
-    // Prevent deletion of admin accounts
+    console.log(`Deleting user: ${user.name} (${user.email}) - Role: ${user.role}`);
+
     if (user.role === 'admin') {
       await client.query('ROLLBACK');
-      return res.status(403).json({ error: 'Cannot delete admin accounts. Only agents and customers can be deleted.' });
+      return res.status(403).json({ error: 'Cannot delete admin accounts.' });
     }
-    
-    // Delete related records first to avoid FK constraint violations
-    
-    // 1. Delete box scans created by this user
-    const boxScans = await client.query('DELETE FROM box_scans WHERE scanned_by = $1', [id]);
-    console.log(`  Deleted ${boxScans.rowCount} box scans created by user`);
-    
-    // 2. Update moves - set agent_id to NULL if this user was an agent
-    const agentMoves = await client.query('UPDATE moves SET agent_id = NULL WHERE agent_id = $1', [id]);
-    console.log(`  Updated ${agentMoves.rowCount} moves (unassigned agent)`);
-    
-    // 3. Delete notifications for this user
-    const notifs = await client.query('DELETE FROM notifications WHERE user_id = $1', [id]);
-    console.log(`  Deleted ${notifs.rowCount} notifications`);
-    
-    // 4. For customer users, we need to handle their moves
+
+    // STEP 1: SET NULL on columns that reference this user (keep parent records)
+    await client.query('UPDATE payments SET verified_by = NULL WHERE verified_by = $1', [id]);
+    await client.query('UPDATE payments SET recorded_by = NULL WHERE recorded_by = $1', [id]);
+    await client.query('UPDATE pricing_configs SET created_by = NULL WHERE created_by = $1', [id]);
+    await client.query('UPDATE pricing_overrides SET created_by = NULL WHERE created_by = $1', [id]);
+    await client.query('UPDATE addon_services SET created_by = NULL WHERE created_by = $1', [id]);
+    await client.query('UPDATE moves SET agent_id = NULL WHERE agent_id = $1', [id]);
+    await client.query('UPDATE move_plans SET agent_id = NULL WHERE agent_id = $1', [id]);
+    await client.query('UPDATE agent_quotes SET agent_id = NULL WHERE agent_id = $1', [id]);
+
+    // STEP 2: Delete user-level records
+    await client.query('DELETE FROM user_profiles WHERE user_id = $1', [id]);
+    await client.query('DELETE FROM notifications WHERE user_id = $1', [id]);
+    await client.query('DELETE FROM box_scans WHERE scanned_by = $1', [id]);
+    await client.query('DELETE FROM move_activities WHERE actor_id = $1', [id]);
+    await client.query('DELETE FROM move_ratings WHERE user_id = $1', [id]);
+    await client.query('DELETE FROM disputes WHERE raised_by = $1', [id]);
+    await client.query('DELETE FROM move_documents WHERE uploaded_by = $1', [id]);
+    await client.query('DELETE FROM move_addons WHERE added_by = $1', [id]);
+
+    // STEP 3: For customers, cascade delete all move-related data
     if (user.role === 'customer') {
-      console.log(`  User is customer - deleting related move data...`);
-      
-      // Delete disputes first
-      const disputes = await client.query('DELETE FROM disputes WHERE move_id IN (SELECT id FROM moves WHERE user_id = $1)', [id]);
-      console.log(`    Deleted ${disputes.rowCount} disputes`);
-      
-      // Delete payments
-      const payments = await client.query('DELETE FROM payments WHERE move_id IN (SELECT id FROM moves WHERE user_id = $1)', [id]);
-      console.log(`    Deleted ${payments.rowCount} payments`);
-      
-      // Delete move_items if table exists
-      try {
-        const items = await client.query('DELETE FROM move_items WHERE move_id IN (SELECT id FROM moves WHERE user_id = $1)', [id]);
-        console.log(`    Deleted ${items.rowCount} move items`);
-      } catch(e) {
-        console.log(`    move_items table not found (skipping)`);
+      const moveResult = await client.query('SELECT id FROM moves WHERE user_id = $1', [id]);
+      const moveIds = moveResult.rows.map(r => r.id);
+
+      if (moveIds.length > 0) {
+        const moveTables = [
+          'agent_quotes', 'boxes', 'disputes', 'furniture_items',
+          'move_activities', 'move_addons', 'move_documents', 'move_estimates',
+          'move_items', 'move_plans', 'move_pricing', 'move_ratings',
+          'move_reports', 'notifications', 'payments', 'box_scans',
+        ];
+        for (const tbl of moveTables) {
+          const r = await client.query(`DELETE FROM ${tbl} WHERE move_id = ANY($1)`, [moveIds]);
+          if (r.rowCount > 0) console.log(`  Deleted ${r.rowCount} from ${tbl}`);
+        }
+        await client.query('DELETE FROM moves WHERE user_id = $1', [id]);
+        console.log(`  Deleted ${moveIds.length} move(s)`);
       }
-      
-      // Delete box_scans for moves
-      const moveBoxScans = await client.query('DELETE FROM box_scans WHERE move_id IN (SELECT id FROM moves WHERE user_id = $1)', [id]);
-      console.log(`    Deleted ${moveBoxScans.rowCount} box scans for moves`);
-      
-      // Finally delete moves
-      const moves = await client.query('DELETE FROM moves WHERE user_id = $1', [id]);
-      console.log(`    Deleted ${moves.rowCount} moves`);
+
+      await client.query('DELETE FROM payments WHERE user_id = $1', [id]);
     }
-    
-    // 5. Delete activities
-    const activities = await client.query('DELETE FROM activities WHERE user_id = $1', [id]);
-    console.log(`  Deleted ${activities.rowCount} activities`);
-    
-    // 6. Delete the user
+
+    // STEP 4: Delete the user
     await client.query('DELETE FROM users WHERE id = $1', [id]);
-    console.log(`✅ Successfully deleted user: ${user.name}`);
-    
+    console.log(`✅ Deleted user: ${user.name}`);
+
     await client.query('COMMIT');
     res.json({ message: 'User deleted successfully' });
-    
-  } catch(err) {
+
+  } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Delete user error:', err.message);
     res.status(500).json({ error: 'Failed to delete user: ' + err.message });

@@ -75,7 +75,8 @@ exports.scan = async (req, res) => {
     );
     res.json({ message: 'Scan logged', box_id: box.id, new_status: status });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to log scan' });
+    console.error('❌ Scan error:', err.message, err.stack?.split('\n')[1]);
+    res.status(500).json({ error: 'Failed to log scan', detail: err.message });
   }
 };
 

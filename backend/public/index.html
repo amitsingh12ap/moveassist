@@ -1129,6 +1129,10 @@ body {
           <div class="section-head">Agent Dashboard</div>
           <div class="section-sub" id="agentSubtitle">Assigned moves</div>
         </div>
+        <button class="screen-header-action" onclick="openCreateMove()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+          New Move
+        </button>
       </div>
       <div id="agentStatGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px"></div>
       <div id="agentMovesList"></div>
@@ -1355,10 +1359,11 @@ body {
 <div class="modal-overlay" id="cashModal" onclick="closeModal('cashModal')">
   <div class="modal-sheet" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
-    <div class="modal-title">Mark Full Payment Received</div>
+    <div class="modal-title">Mark Payment Received</div>
     <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:#78716c">
-      💡 Enter the <strong>exact amount</strong> from your final quote. Payment will be auto-verified and move will start immediately.
+      💡 Enter the <strong>exact amount collected</strong> from the customer. Payment will be auto-verified and move will start immediately.
     </div>
+    <div id="cashBreakdown" style="display:none;margin-bottom:8px"></div>
     <div class="field">
       <label>Amount Received (₹) *</label>
       <input type="number" id="cashAmount" placeholder="0.00" inputmode="decimal" style="font-size:18px;font-weight:700;text-align:center"/>
@@ -1396,6 +1401,18 @@ body {
 
     <!-- Step 1: Addresses -->
     <div id="createStep1">
+      <!-- Agent-only: customer phone field -->
+      <div class="field" id="agentCustomerField" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px">
+        <label style="color:#2563eb;font-weight:700;font-size:13px">👤 Customer Phone <span style="color:#ef4444">*</span></label>
+        <input type="tel" id="newMoveCustomerPhone" placeholder="e.g. 9876543210"
+               style="margin-top:6px;border-color:#bfdbfe"
+               oninput="lookupCustomerByPhone(this.value)"/>
+        <div id="customerLookupHint" style="font-size:11px;color:#64748b;margin-top:4px">Enter customer's phone — existing customer will be found, or a new account will be created.</div>
+        <div class="field" id="agentCustomerNameField" style="display:none;margin-top:8px;margin-bottom:0">
+          <label style="color:#2563eb;font-size:12px">Customer Name (if new)</label>
+          <input type="text" id="newMoveCustomerName" placeholder="e.g. Priya Sharma" style="border-color:#bfdbfe"/>
+        </div>
+      </div>
       <div class="field">
         <label>Move Title</label>
         <input type="text" id="newMoveTitle" placeholder="e.g. Home Shifting — Sector 82"/>
@@ -2007,6 +2024,18 @@ async function loadAgentMoves() {
 async function loadMoves() {
   const list = document.getElementById('movesList');
   list.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+
+  // Update title/subtitle based on role
+  const secHead = document.querySelector('.section-head');
+  const secSub = document.querySelector('.section-sub');
+  if (user?.role === 'agent') {
+    if (secHead) secHead.textContent = 'My Assigned Moves';
+    if (secSub) secSub.textContent = 'Moves you are managing';
+  } else {
+    if (secHead) secHead.textContent = 'My Moves';
+    if (secSub) secSub.textContent = 'All your home shifting projects';
+  }
+
   try {
     const moves = await api('GET', '/api/moves');
 
@@ -2044,7 +2073,7 @@ async function loadMoves() {
     }
 
     if (!moves.length) {
-      list.innerHTML = `<div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No moves yet</div><div class="empty-sub">Click + New Move to create your first move</div></div>`;
+      list.innerHTML = `<div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">No moves yet</div><div class="empty-sub">${user?.role === 'agent' ? 'Click + New Move to create a move for a customer' : 'Click + New Move to create your first move'}</div></div>`;
       return;
     }
     list.innerHTML = moves.map(m => {
@@ -2057,7 +2086,7 @@ async function loadMoves() {
       return `
       <div class="move-card ${statusClass}" onclick="openMove('${m.id}')">
         <div class="move-card-header">
-          <div class="move-card-title">${m.title || 'Unnamed Move'}</div>
+          <div class="move-card-title">${m.title || 'Unnamed Move'}${m.user_name ? `<span style="font-size:11px;color:#64748b;font-weight:500;margin-left:8px">👤 ${m.user_name}</span>` : ''}</div>
           <span class="move-card-badge ${badgeClass}">${s.label}</span>
         </div>
         <div class="move-card-route">
@@ -2170,6 +2199,26 @@ async function openMove(id) {
               <span class="icon">📄</span>
               <span class="label">${!paid?'🔒 ':''}Generate PDF Report</span>
             </button>
+            <button class="detail-action-btn" onclick="openAddonsPanel('${m.id}')">
+              <span class="icon">➕</span>
+              <span class="label">Add-on Services</span>
+            </button>
+            <button class="detail-action-btn" onclick="openMovePlanModal('${m.id}')">
+              <span class="icon">📋</span>
+              <span class="label">Move Plan</span>
+            </button>
+            <button class="detail-action-btn" onclick="openTimeline('${m.id}')">
+              <span class="icon">🕐</span>
+              <span class="label">Activity Timeline</span>
+            </button>
+            <button class="detail-action-btn" onclick="openDisputeModal('${m.id}')">
+              <span class="icon">⚠️</span>
+              <span class="label">Raise Dispute</span>
+            </button>
+            <button class="detail-action-btn" onclick="openDocVault('${m.id}')">
+              <span class="icon">📁</span>
+              <span class="label">Documents</span>
+            </button>
           </div>
           ${(user?.role === 'agent' || user?.role === 'admin') && (m.status === 'in_progress' || m.status === 'active') ? `
           <div class="detail-card" style="margin-top:12px">
@@ -2216,6 +2265,9 @@ async function openMove(id) {
 
 function openCreateMove() {
   document.getElementById('newMoveDate').value = new Date().toISOString().split('T')[0];
+  // Show customer phone field for agents
+  const agentField = document.getElementById('agentCustomerField');
+  if (agentField) agentField.style.display = (user?.role === 'agent' || user?.role === 'admin') ? '' : 'none';
   openModal('createMoveModal');
 }
 
@@ -2331,6 +2383,41 @@ async function updateEstimate() {
   } catch(e) {}
 }
 
+
+// Agent: live customer phone lookup
+let _phoneTimer = null;
+async function lookupCustomerByPhone(phone) {
+  const hint = document.getElementById('customerLookupHint');
+  const nameField = document.getElementById('agentCustomerNameField');
+  clearTimeout(_phoneTimer);
+  phone = phone.trim().replace(/\s+/g,'');
+  if (phone.length < 10) {
+    hint.textContent = "Enter customer's phone — existing customer will be found, or a new account will be created.";
+    hint.style.color = '#64748b';
+    nameField.style.display = 'none';
+    return;
+  }
+  hint.textContent = 'Looking up...'; hint.style.color = '#64748b';
+  _phoneTimer = setTimeout(async () => {
+    try {
+      const r = await api('GET', `/api/admin/users?phone=${encodeURIComponent(phone)}`);
+      const match = (r.users || r).find(u => u.phone === phone && u.role === 'customer');
+      if (match) {
+        hint.textContent = `✅ Found: ${match.name}`;
+        hint.style.color = '#16a34a';
+        nameField.style.display = 'none';
+      } else {
+        hint.textContent = '➕ New customer — will be created automatically';
+        hint.style.color = '#d97706';
+        nameField.style.display = '';
+      }
+    } catch(e) {
+      hint.textContent = "Enter customer's phone number";
+      hint.style.color = '#64748b';
+    }
+  }, 500);
+}
+
 async function createMoveStep2() {
   const title = document.getElementById('newMoveTitle').value.trim();
   const from = document.getElementById('newMoveFrom').value.trim();
@@ -2344,6 +2431,13 @@ async function createMove() {
   const btn = document.getElementById('createMoveBtn');
   btn.disabled = true; btn.textContent = 'Creating...';
   try {
+    const isAgent = user?.role === 'agent' || user?.role === 'admin';
+    const customerPhone = document.getElementById('newMoveCustomerPhone')?.value?.trim();
+    if (isAgent && !customerPhone) {
+      toast('Please enter customer phone number', 'error');
+      btn.disabled = false; btn.textContent = 'Create Move 🎉';
+      return;
+    }
     const move = await api('POST', '/api/moves', {
       title: document.getElementById('newMoveTitle').value,
       from_address: document.getElementById('newMoveFrom').value,
@@ -2358,6 +2452,10 @@ async function createMove() {
       has_lift_from: document.getElementById('liftFrom')?.checked||false,
       has_lift_to: document.getElementById('liftTo')?.checked||false,
       bhk_type: selectedBHK,
+      ...(isAgent && customerPhone ? {
+        customer_phone: customerPhone,
+        customer_name: document.getElementById('newMoveCustomerName')?.value?.trim() || '',
+      } : {}),
     });
     // Save pricing estimate
     if (estimateData && move.id) {
@@ -2373,7 +2471,9 @@ async function createMove() {
     loadMoves();
     toast('Move created! 🎉', 'success');
     // Reset form
-    ['newMoveTitle','newMoveFrom','newMoveTo'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    ['newMoveTitle','newMoveFrom','newMoveTo','newMoveCustomerPhone','newMoveCustomerName'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    const aField = document.getElementById('agentCustomerNameField'); if(aField) aField.style.display='none';
+    const hint = document.getElementById('customerLookupHint'); if(hint) hint.textContent = "Enter customer's phone — existing customer will be found, or a new account will be created.";
     moveGeo = { from:{}, to:{} }; selectedBHK = null; estimateData = null;
     document.getElementById('createStep1').style.display = '';
     document.getElementById('createStep2').style.display = 'none';
@@ -2570,6 +2670,78 @@ async function submitDispute() {
 // CLIENT FLOW — Document Vault
 // ══════════════════════════════════════════════
 let docFileDataUrl = null, docVaultMoveId = null;
+
+// ── ADD-ON SERVICES PANEL ──────────────────────────────────────
+async function openAddonsPanel(moveId) {
+  document.getElementById('addonsModal').style.display = 'flex';
+  document.getElementById('addonsMoveId').value = moveId;
+  await loadAddonsPanel(moveId);
+}
+
+async function loadAddonsPanel(moveId) {
+  const bookedEl = document.getElementById('addonsBooked');
+  const availEl = document.getElementById('addonsAvailable');
+  bookedEl.innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
+  availEl.innerHTML = '';
+  try {
+    const data = await api('GET', `/api/addons/available/${moveId}`);
+    const { booked, available } = data;
+
+    // Booked section
+    if (!booked.length) {
+      bookedEl.innerHTML = '<div style="color:var(--sub);font-size:13px;text-align:center;padding:12px">No add-ons booked yet</div>';
+    } else {
+      bookedEl.innerHTML = booked.map(a => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#f8fafc;border-radius:10px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:20px">${a.icon||'🔧'}</span>
+            <div>
+              <div style="font-size:13px;font-weight:600">${a.service_name}</div>
+              <div style="font-size:11px;color:var(--sub)">Qty: ${a.quantity} · ₹${parseFloat(a.total_price).toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+          <button onclick="removeAddon('${a.id}','${moveId}')" style="background:#fee2e2;border:none;border-radius:8px;padding:4px 10px;color:#dc2626;font-size:12px;font-weight:600;cursor:pointer">Remove</button>
+        </div>`).join('');
+    }
+
+    // Group available by category
+    const cats = {};
+    available.forEach(s => { if (!cats[s.category]) cats[s.category] = []; cats[s.category].push(s); });
+    availEl.innerHTML = Object.entries(cats).map(([cat, svcs]) => `
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--sub);margin-bottom:8px">${cat.replace(/_/g,' ')}</div>
+        ${svcs.map(s => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:#fff">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">${s.icon||'🔧'}</span>
+              <div>
+                <div style="font-size:13px;font-weight:600">${s.name}</div>
+                <div style="font-size:11px;color:var(--sub)">₹${parseFloat(s.base_price).toLocaleString('en-IN')}${s.unit?' / '+s.unit:''}</div>
+              </div>
+            </div>
+            <button onclick="addAddon('${s.id}','${moveId}')" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:5px 12px;color:#2563eb;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
+          </div>`).join('')}
+      </div>`).join('');
+  } catch(e) {
+    bookedEl.innerHTML = `<div style="color:red;font-size:13px">${e.message}</div>`;
+  }
+}
+
+async function addAddon(addonId, moveId) {
+  try {
+    await api('POST', '/api/addons/move', { move_id: moveId, addon_id: addonId, quantity: 1 });
+    toast('Add-on booked! ✅', 'success');
+    await loadAddonsPanel(moveId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function removeAddon(moveAddonId, moveId) {
+  try {
+    await api('DELETE', `/api/addons/move/${moveAddonId}`);
+    toast('Add-on removed', 'success');
+    await loadAddonsPanel(moveId);
+  } catch(e) { toast(e.message, 'error'); }
+}
 
 async function openDocVault(moveId) {
   docVaultMoveId = moveId;
@@ -3493,16 +3665,31 @@ async function submitOnlinePayment(moveId, amount) {
 function openCashModal(moveId) {
   window._cashMoveId = moveId;
   
-  // Get quote total from current payment screen data
+  // Get quote total from current payment screen data — include addons in grand total
   const quoteTotal = window._currentQuoteTotal || 0;
+  const addonTotal = window._currentAddonTotal || 0;
   const estimatedCost = window._currentEstimatedCost || 0;
-  const suggestedAmount = quoteTotal || estimatedCost || 0;
+  const grandTotal = quoteTotal + addonTotal;
+  const suggestedAmount = grandTotal || estimatedCost || 0;
   
-  // Pre-fill amount field
+  // Pre-fill amount field and label
   setTimeout(() => {
     const amountField = document.getElementById('cashAmount');
     if (amountField && suggestedAmount > 0) {
       amountField.value = suggestedAmount;
+    }
+    const breakdown = document.getElementById('cashBreakdown');
+    if (breakdown) {
+      if (quoteTotal > 0 && addonTotal > 0) {
+        breakdown.innerHTML = `<div style="font-size:12px;color:var(--sub);margin-bottom:8px;background:#f0fdf4;padding:8px;border-radius:8px">
+          📦 Move quote: ₹${quoteTotal.toLocaleString('en-IN')}<br>
+          ➕ Add-ons: ₹${addonTotal.toLocaleString('en-IN')}<br>
+          <strong>Grand total: ₹${grandTotal.toLocaleString('en-IN')}</strong>
+        </div>`;
+        breakdown.style.display = 'block';
+      } else {
+        breakdown.style.display = 'none';
+      }
     }
   }, 100);
   
@@ -3657,6 +3844,7 @@ function renderPaymentScreen(data, quote, plan) {
   window._currentPlan = plan || null;
   window._currentQuoteTotal = quote ? parseFloat(quote.total) : 0;
   window._currentEstimatedCost = parseFloat(data.estimated_cost || 0);
+  window._currentAddonTotal = parseFloat(data.addon_total || 0);
   
   const content = document.getElementById('paymentContent');
   const status       = data.move_status || data.status || '';
@@ -3708,7 +3896,9 @@ function renderPaymentScreen(data, quote, plan) {
   // ── Amount summary card ──────────────────────────────────────
   const estimatedCost = parseFloat(data.estimated_cost || 0);
   const quotedTotal = quote ? parseFloat(quote.total) : 0;
-  const finalTotal  = quotedTotal || amtTotal;
+  const addonTotal  = parseFloat(data.addon_total || 0);
+  const addons      = data.addons || [];
+  const finalTotal  = quotedTotal ? quotedTotal + addonTotal : amtTotal;
   const balanceDue  = Math.max(0, finalTotal - amtPaid);
 
   const summaryHtml = `
@@ -3721,17 +3911,35 @@ function renderPaymentScreen(data, quote, plan) {
     </div>` : ''}
     ${quotedTotal > 0 ? `
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
-      <span style="font-size:13px;color:var(--sub)">Final Quote</span>
+      <span style="font-size:13px;color:var(--sub)">Move Quote (labour + transport)</span>
       <span style="font-size:14px;font-weight:700;color:#7c3aed">₹${quotedTotal.toLocaleString('en-IN')}</span>
     </div>` : isAgent || isAdmin ? `
     <div style="padding:12px 0;color:var(--sub);font-size:13px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px;margin:8px 0">
       📋 Visit customer location to assess items and determine final price
     </div>` : ''}
+    ${addons.length > 0 ? `
+    <div style="padding:8px 0;border-bottom:1px solid #e2e8f0">
+      <div style="font-size:12px;color:var(--sub);font-weight:600;margin-bottom:6px">➕ Add-on Services</div>
+      ${addons.map(a => `
+      <div style="display:flex;justify-content:space-between;padding:4px 0;padding-left:8px">
+        <span style="font-size:12px;color:var(--sub)">${a.icon||'🔧'} ${a.service_name} ×${a.quantity}</span>
+        <span style="font-size:12px;font-weight:600;color:#64748b">₹${parseFloat(a.total_price).toLocaleString('en-IN')}</span>
+      </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;padding:6px 0 2px;padding-left:8px;border-top:1px dashed #e2e8f0;margin-top:4px">
+        <span style="font-size:12px;font-weight:700;color:var(--sub)">Add-ons subtotal</span>
+        <span style="font-size:13px;font-weight:700;color:#0284c7">₹${addonTotal.toLocaleString('en-IN')}</span>
+      </div>
+    </div>` : ''}
+    ${(quotedTotal > 0 && addonTotal > 0) ? `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0;background:#f0fdf4;border-radius:8px;padding:10px;margin:4px 0">
+      <span style="font-size:14px;font-weight:700">Grand Total</span>
+      <span style="font-size:16px;font-weight:800;color:#15803d">₹${finalTotal.toLocaleString('en-IN')}</span>
+    </div>` : ''}
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0">
       <span style="font-size:13px;color:var(--sub)">Amount Paid</span>
       <span style="font-size:14px;font-weight:700;color:var(--success)">₹${amtPaid.toLocaleString('en-IN')}</span>
     </div>
-    ${balanceDue > 0 && quotedTotal > 0 ? `
+    ${balanceDue > 0 && (quotedTotal > 0 || addonTotal > 0) ? `
     <div style="display:flex;justify-content:space-between;padding:10px 0">
       <span style="font-size:14px;font-weight:700">Balance Due</span>
       <span style="font-size:18px;font-weight:800;color:${status==='in_progress'||status==='completed'?'var(--success)':'var(--error)'}">₹${balanceDue.toLocaleString('en-IN')}</span>
@@ -3842,20 +4050,29 @@ function renderPaymentScreen(data, quote, plan) {
       </div>`;
     }
 
-    // Payment collection button
-    if (quote && !isInProgress && !isCompleted) {
-      // Quote exists but payment not yet received
-      const quoteTotal = parseFloat(quote.total);
+    // Payment collection button — show when quote OR addons exist, and move not yet in progress
+    const addonTotalCta = parseFloat(data.addon_total || 0);
+    const hasPayableAmount = quote || addonTotalCta > 0;
+    if (hasPayableAmount && !isInProgress && !isCompleted) {
+      const quoteAmtCta = quote ? parseFloat(quote.total) : 0;
+      const grandTotalCta = quoteAmtCta + addonTotalCta;
+      const collectLabel = grandTotalCta > 0 ? `₹${grandTotalCta.toLocaleString('en-IN')}` : '';
+      const breakdownNote = (quoteAmtCta > 0 && addonTotalCta > 0)
+        ? `<div style="font-size:11px;color:#78716c;margin-top:3px">Move ₹${quoteAmtCta.toLocaleString('en-IN')} + Add-ons ₹${addonTotalCta.toLocaleString('en-IN')}</div>`
+        : addonTotalCta > 0 && !quote
+        ? `<div style="font-size:11px;color:#78716c;margin-top:3px">⚠️ Submit a quote first, or collect add-ons total of ₹${addonTotalCta.toLocaleString('en-IN')}</div>`
+        : '';
       ctaHtml += `
       <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:14px;padding:16px;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:700;color:#b45309;margin-bottom:4px">💵 Collect Full Payment</div>
-        <div style="font-size:12px;color:var(--sub);margin-bottom:4px">Final quote amount: ₹${quoteTotal.toLocaleString('en-IN')}</div>
-        <div style="font-size:11px;color:#78716c;background:#fef3c7;padding:6px 8px;border-radius:6px;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:#b45309;margin-bottom:4px">💵 Collect Payment from Customer</div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:2px">${quote ? `Final quote: ₹${quoteAmtCta.toLocaleString('en-IN')}` : 'No quote submitted yet'}</div>
+        ${breakdownNote}
+        <div style="font-size:11px;color:#78716c;background:#fef3c7;padding:6px 8px;border-radius:6px;margin:8px 0 12px">
           ⚠️ Collect full payment before starting the move. Once marked, move will automatically start.
         </div>
         <button onclick="openCashModal('${data.move_id}')"
           style="width:100%;padding:12px;background:#16a34a;border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">
-          💵 Mark Full Payment Received (₹${quoteTotal.toLocaleString('en-IN')})
+          💵 Mark Payment Received ${collectLabel ? `(${collectLabel})` : ''}
         </button>
       </div>`;
     } else if (isInProgress || isCompleted) {
@@ -3893,10 +4110,11 @@ function renderPaymentScreen(data, quote, plan) {
       ${parseFloat(quote.fragile_charge)>0?`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px"><div style="font-size:10px;color:var(--sub);margin-bottom:2px">Fragile</div><div style="font-size:15px;font-weight:700">₹${parseFloat(quote.fragile_charge).toLocaleString('en-IN')}</div></div>`:''}
       ${parseFloat(quote.extra_items)>0?`<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px"><div style="font-size:10px;color:#b45309;margin-bottom:2px">Extra Items</div><div style="font-size:15px;font-weight:700;color:#b45309">₹${parseFloat(quote.extra_items).toLocaleString('en-IN')}</div></div>`:''}
       ${parseFloat(quote.discount)>0?`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px"><div style="font-size:10px;color:#16a34a;margin-bottom:2px">Discount</div><div style="font-size:15px;font-weight:700;color:#16a34a">−₹${parseFloat(quote.discount).toLocaleString('en-IN')}</div></div>`:''}
+      ${parseFloat(quote.tax)>0?`
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px">
         <div style="font-size:10px;color:var(--accent);margin-bottom:2px">GST 18%</div>
         <div style="font-size:15px;font-weight:700;color:var(--accent)">₹${parseFloat(quote.tax).toLocaleString('en-IN')}</div>
-      </div>
+      </div>`:''}
     </div>
     <div style="border-top:2px solid #e2e8f0;padding-top:12px;display:flex;justify-content:space-between;align-items:center">
       <span style="font-size:13px;color:var(--sub);font-weight:600">FINAL TOTAL</span>
@@ -4209,6 +4427,12 @@ function openSubmitQuoteModal(moveId, currentTotal = 0) {
       <div class="field"><label>Extra Items (₹)</label><input type="number" id="sqExtra" value="0" min="0"/></div>
     </div>
     <div class="field"><label>Discount (₹)</label><input type="number" id="sqDiscount" value="0" min="0"/></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;margin-bottom:8px">
+      <input type="checkbox" id="sqIncludeTax" style="width:18px;height:18px;cursor:pointer"/>
+      <label for="sqIncludeTax" style="font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;margin:0">
+        Add GST 18% on top of base price
+      </label>
+    </div>
   </div>
   <div class="field"><label>Notes (optional)</label>
     <textarea id="sqNotes" placeholder="e.g. Found 2 extra heavy items on-site..." style="height:70px"></textarea>
@@ -4235,6 +4459,7 @@ async function submitAgentQuote(moveId) {
       fragile_charge: parseFloat(document.getElementById('sqFragile')?.value) || 0,
       extra_items:    parseFloat(document.getElementById('sqExtra')?.value)   || 0,
       discount:       parseFloat(document.getElementById('sqDiscount')?.value)|| 0,
+      include_tax:    document.getElementById('sqIncludeTax')?.checked || false,
       notes:          document.getElementById('sqNotes').value || null,
     });
     closeModal('submitQuoteModal');
@@ -5340,6 +5565,20 @@ async function deletePricing(id) {
       <input type="file" id="disputePhotoInput" accept="image/*" style="display:none" onchange="handleDisputePhoto(this)"/>
     </div>
     <button class="btn btn-primary" onclick="submitDispute()" id="submitDisputeBtn" style="background:#dc2626;border-color:#dc2626">Submit Dispute</button>
+  </div>
+</div>
+
+<!-- Add-on Services Modal -->
+<div style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-end;justify-content:center" id="addonsModal" onclick="if(event.target===this)this.style.display='none'">
+  <div onclick="event.stopPropagation()" style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:85vh;overflow-y:auto;padding:20px">
+    <div style="width:40px;height:4px;background:#e2e8f0;border-radius:4px;margin:0 auto 16px"></div>
+    <div style="font-size:18px;font-weight:800;margin-bottom:4px">➕ Add-on Services</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:16px">Book additional services for this move</div>
+    <input type="hidden" id="addonsMoveId"/>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--sub);margin-bottom:8px">Booked Services</div>
+    <div id="addonsBooked" style="margin-bottom:16px"></div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--sub);margin-bottom:8px">Available Services</div>
+    <div id="addonsAvailable"></div>
   </div>
 </div>
 

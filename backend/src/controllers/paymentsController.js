@@ -37,6 +37,14 @@ exports.getSummary = async (req, res) => {
       [req.params.moveId]
     );
 
+    const addonsResult = await db.query(
+      `SELECT ma.*, a.name as service_name, a.icon, a.category
+       FROM move_addons ma JOIN addon_services a ON a.id = ma.addon_id
+       WHERE ma.move_id = $1 ORDER BY ma.created_at`,
+      [req.params.moveId]
+    );
+    const addonTotal = addonsResult.rows.reduce((sum, a) => sum + parseFloat(a.total_price), 0);
+
     const m = move.rows[0];
     res.json({
       move_id: m.id,
@@ -48,6 +56,8 @@ exports.getSummary = async (req, res) => {
       amount_total: parseFloat(m.amount_total || 0),
       amount_paid: parseFloat(m.amount_paid || 0),
       amount_due: parseFloat(m.amount_total || 0) - parseFloat(m.amount_paid || 0),
+      addon_total: addonTotal,
+      addons: addonsResult.rows,
       token_amount: m.token_amount ? parseFloat(m.token_amount) : null,
       token_paid: m.token_paid || false,
       invoice_number: m.invoice_number,
@@ -172,7 +182,8 @@ exports.markCashReceived = async (req, res) => {
   try {
     // Get move and quote details
     const moveRes = await db.query(
-      `SELECT m.*, aq.total as quote_total 
+      `SELECT m.*, aq.total as quote_total,
+        COALESCE((SELECT SUM(total_price) FROM move_addons WHERE move_id = m.id), 0) as addon_total
        FROM moves m 
        LEFT JOIN agent_quotes aq ON aq.move_id = m.id 
        WHERE m.id = $1`,
@@ -185,20 +196,24 @@ exports.markCashReceived = async (req, res) => {
     
     const move = moveRes.rows[0];
     const quoteTotal = parseFloat(move.quote_total || 0);
+    const addonTotal = parseFloat(move.addon_total || 0);
+    // Grand total: use amount_total if set (set by quote submission to include addons),
+    // otherwise fall back to quoteTotal + addons from the query
+    const grandTotal = parseFloat(move.amount_total || 0) || (quoteTotal + addonTotal);
     const paymentAmount = parseFloat(amount);
-    
-    // Validation: Quote must exist
-    if (!quoteTotal || quoteTotal <= 0) {
-      return res.status(400).json({ 
-        error: 'Please submit a final quote before marking payment received' 
+
+    // Validation: Must have something to collect (quote OR addons)
+    if (grandTotal <= 0) {
+      return res.status(400).json({
+        error: 'Please submit a final quote before marking payment received'
       });
     }
-    
-    // Validation: Payment amount should match quote (allow small tolerance for rounding)
+
+    // Validation: Payment amount should match grand total (allow small tolerance for rounding)
     const tolerance = 1; // ₹1 tolerance
-    if (Math.abs(paymentAmount - quoteTotal) > tolerance) {
-      return res.status(400).json({ 
-        error: `Payment amount (₹${paymentAmount}) must match the quoted amount (₹${quoteTotal})` 
+    if (Math.abs(paymentAmount - grandTotal) > tolerance) {
+      return res.status(400).json({
+        error: `Payment amount (₹${paymentAmount.toLocaleString('en-IN')}) must match the total amount (₹${grandTotal.toLocaleString('en-IN')})${quoteTotal > 0 && addonTotal > 0 ? ` — move quote ₹${quoteTotal.toLocaleString('en-IN')} + add-ons ₹${addonTotal.toLocaleString('en-IN')}` : ''}`
       });
     }
     
