@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/move.dart';
 import '../../services/moves_service.dart';
 import '../create_move_screen.dart';
+import '../move_detail_screen.dart';
 
 class MovesTab extends StatefulWidget {
   final String token;
@@ -23,12 +24,20 @@ class _MovesTabState extends State<MovesTab> {
   }
 
   Future<void> _loadMoves() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final moves = await MovesService.getMoves(widget.token);
       if (mounted) setState(() { _moves = moves; _loading = false; });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString().replaceFirst('Exception: ', ''); _loading = false; });
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceFirst('Exception: ', '');
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -100,7 +109,7 @@ class _MovesTabState extends State<MovesTab> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (ctx, i) => _MoveCard(move: _moves![i]),
+                  (ctx, i) => _MoveCard(move: _moves![i], token: widget.token),
                   childCount: _moves!.length,
                 ),
               ),
@@ -112,11 +121,10 @@ class _MovesTabState extends State<MovesTab> {
   }
 }
 
-// ── New Move Button ──────────────────────────────────────────────
+// ── New Move Button ──────────────────────────────────────────────────────────
 class _NewMoveButton extends StatelessWidget {
   final String token;
   final VoidCallback onCreated;
-
   const _NewMoveButton({required this.token, required this.onCreated});
 
   @override
@@ -152,7 +160,7 @@ class _NewMoveButton extends StatelessWidget {
   }
 }
 
-// ── Stats Row ────────────────────────────────────────────────────
+// ── Stats Row ────────────────────────────────────────────────────────────────
 class _StatsRow extends StatelessWidget {
   final List<Move> moves;
   const _StatsRow({required this.moves});
@@ -162,14 +170,37 @@ class _StatsRow extends StatelessWidget {
     final total = moves.length;
     final active = moves.where((m) => m.status == 'active' || m.status == 'in_progress').length;
     final done = moves.where((m) => m.status == 'completed').length;
-
     return Row(
       children: [
-        Expanded(child: _StatCard(value: '$total', label: 'Total Moves', iconBg: const Color(0xFFeff6ff), iconColor: const Color(0xFF2563eb), icon: Icons.home_outlined)),
+        Expanded(
+          child: _StatCard(
+            value: '$total',
+            label: 'Total Moves',
+            iconBg: const Color(0xFFeff6ff),
+            iconColor: const Color(0xFF2563eb),
+            icon: Icons.home_outlined,
+          ),
+        ),
         const SizedBox(width: 10),
-        Expanded(child: _StatCard(value: '$active', label: 'In Progress', iconBg: const Color(0xFFfef3c7), iconColor: const Color(0xFFb45309), icon: Icons.local_shipping_outlined)),
+        Expanded(
+          child: _StatCard(
+            value: '$active',
+            label: 'In Progress',
+            iconBg: const Color(0xFFfef3c7),
+            iconColor: const Color(0xFFb45309),
+            icon: Icons.local_shipping_outlined,
+          ),
+        ),
         const SizedBox(width: 10),
-        Expanded(child: _StatCard(value: '$done', label: 'Completed', iconBg: const Color(0xFFdcfce7), iconColor: const Color(0xFF15803d), icon: Icons.check_circle_outline)),
+        Expanded(
+          child: _StatCard(
+            value: '$done',
+            label: 'Completed',
+            iconBg: const Color(0xFFdcfce7),
+            iconColor: const Color(0xFF15803d),
+            icon: Icons.check_circle_outline,
+          ),
+        ),
       ],
     );
   }
@@ -205,33 +236,35 @@ class _StatCard extends StatelessWidget {
           Container(
             width: 32,
             height: 32,
-            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Icon(icon, color: iconColor, size: 16),
           ),
           const SizedBox(height: 8),
-          Text(value,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: iconColor, height: 1)),
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: iconColor, height: 1)),
           const SizedBox(height: 3),
-          Text(label,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF64748b), fontWeight: FontWeight.w500)),
+          Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF64748b), fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 }
 
-// ── Move Card ────────────────────────────────────────────────────
+// ── Move Card ────────────────────────────────────────────────────────────────
 class _MoveCard extends StatelessWidget {
   final Move move;
-  const _MoveCard({required this.move});
+  final String token;
+  const _MoveCard({required this.move, required this.token});
 
   static const _statusConfig = {
-    'planning':        (_StatCfg(bg: Color(0xFFf1f5f9), fg: Color(0xFF64748b), label: 'Planning')),
-    'created':         (_StatCfg(bg: Color(0xFFf1f5f9), fg: Color(0xFF64748b), label: 'Created')),
-    'payment_pending': (_StatCfg(bg: Color(0xFFfef3c7), fg: Color(0xFFb45309), label: 'Payment Pending')),
-    'active':          (_StatCfg(bg: Color(0xFFdbeafe), fg: Color(0xFF1d4ed8), label: 'Active')),
-    'in_progress':     (_StatCfg(bg: Color(0xFFfef3c7), fg: Color(0xFFb45309), label: 'In Progress')),
-    'completed':       (_StatCfg(bg: Color(0xFFd1fae5), fg: Color(0xFF047857), label: 'Completed')),
+    'planning':        _StatCfg(bg: Color(0xFFf1f5f9), fg: Color(0xFF64748b), label: 'Planning'),
+    'created':         _StatCfg(bg: Color(0xFFf1f5f9), fg: Color(0xFF64748b), label: 'Created'),
+    'payment_pending': _StatCfg(bg: Color(0xFFfef3c7), fg: Color(0xFFb45309), label: 'Payment Pending'),
+    'active':          _StatCfg(bg: Color(0xFFdbeafe), fg: Color(0xFF1d4ed8), label: 'Active'),
+    'in_progress':     _StatCfg(bg: Color(0xFFfef3c7), fg: Color(0xFFb45309), label: 'In Progress'),
+    'completed':       _StatCfg(bg: Color(0xFFd1fae5), fg: Color(0xFF047857), label: 'Completed'),
   };
 
   static const _borderColors = {
@@ -243,7 +276,8 @@ class _MoveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cfg = _statusConfig[move.status] ?? const _StatCfg(bg: Color(0xFFf1f5f9), fg: Color(0xFF64748b), label: 'Unknown');
+    final cfg = _statusConfig[move.status] ??
+        const _StatCfg(bg: Color(0xFFf1f5f9), fg: Color(0xFF64748b), label: 'Unknown');
     final leftBorder = _borderColors[move.status] ?? const Color(0xFFe2e8f0);
 
     return Container(
@@ -257,7 +291,7 @@ class _MoveCard extends StatelessWidget {
             color: Colors.black.withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: ClipRRect(
@@ -265,7 +299,15 @@ class _MoveCard extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () {}, // TODO: navigate to move detail
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => MoveDetailScreen(
+                  moveId: move.id,
+                  token: token,
+                  moveTitle: move.title,
+                ),
+              ),
+            ),
             child: IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -303,7 +345,11 @@ class _MoveCard extends StatelessWidget {
                                 ),
                                 child: Text(
                                   cfg.label,
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: cfg.fg),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: cfg.fg,
+                                  ),
                                 ),
                               ),
                             ],
@@ -346,22 +392,27 @@ class _MoveCard extends StatelessWidget {
                                 style: const TextStyle(fontSize: 11, color: Color(0xFF64748b)),
                               ),
                               const Spacer(),
-                              Text(
-                                _formatDate(move.moveDate ?? move.createdAt),
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF94a3b8)),
+                              Row(
+                                children: [
+                                  const Icon(Icons.chevron_right, size: 14, color: Color(0xFF94a3b8)),
+                                  Text(
+                                    _formatDate(move.moveDate ?? move.createdAt),
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF94a3b8)),
+                                  ),
+                                ],
                               ),
                             ],
-                          ), // footer Row
+                          ),
                         ],
-                      ), // Column
-                    ), // Padding
-                  ), // Expanded
+                      ),
+                    ),
+                  ),
                 ],
-              ), // horizontal Row
-            ), // IntrinsicHeight
-          ), // InkWell
-        ), // Material
-      ), // ClipRRect
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -369,7 +420,7 @@ class _MoveCard extends StatelessWidget {
     if (raw.isEmpty) return '—';
     try {
       final dt = DateTime.parse(raw).toLocal();
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
     } catch (_) {
       return raw.split('T').first;
@@ -384,7 +435,7 @@ class _StatCfg {
   const _StatCfg({required this.bg, required this.fg, required this.label});
 }
 
-// ── Empty / Error States ─────────────────────────────────────────
+// ── Empty / Error States ─────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -396,11 +447,15 @@ class _EmptyState extends StatelessWidget {
         children: [
           Text('🏠', style: TextStyle(fontSize: 48)),
           SizedBox(height: 12),
-          Text('No moves yet',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF0f1729))),
+          Text(
+            'No moves yet',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF0f1729)),
+          ),
           SizedBox(height: 4),
-          Text('Tap + New Move to get started',
-              style: TextStyle(fontSize: 13, color: Color(0xFF64748b))),
+          Text(
+            'Tap + New Move to get started',
+            style: TextStyle(fontSize: 13, color: Color(0xFF64748b)),
+          ),
         ],
       ),
     );
@@ -422,13 +477,18 @@ class _ErrorState extends StatelessWidget {
           children: [
             const Text('⚠️', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 12),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF64748b))),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF64748b)),
+            ),
             const SizedBox(height: 20),
             TextButton(
               onPressed: onRetry,
-              child: const Text('Try again', style: TextStyle(color: Color(0xFF2563eb), fontWeight: FontWeight.w700)),
+              child: const Text(
+                'Try again',
+                style: TextStyle(color: Color(0xFF2563eb), fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ),
